@@ -1,7 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAccountStore } from '@/stores/accounts'
 import HomeView from '@/views/HomeView.vue'
 import DepositView from '@/views/DepositView.vue'
 import SavingView from '@/views/SavingView.vue'
+import SignUpView from '@/views/SignUpView.vue'
+import LogInView from '@/views/LogInView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,7 +24,31 @@ const router = createRouter({
       name: 'SavingView',
       component: SavingView,
     },
-  ],
+    {
+      path: '/signup',
+      name: 'SignUpView',
+      component: SignUpView
+    },
+    {
+      path: '/login',
+      name: 'LogInView',
+      component: LogInView
+    }
+  ]
+})
+
+router.beforeEach((to, from) => {
+  const accountStore = useAccountStore()
+
+  if (to.name === 'ArticleView' && !accountStore.isLogin) {
+    window.alert('로그인이 필요합니다.')
+    return { name: 'LogInView' }
+  }
+
+  if ((to.name === 'SignUpView' || to.name === 'LogInView') && (accountStore.isLogin) ) {
+    window.alert('이미 로그인 되어 있습니다.')
+    return { name: 'ArticleView' }
+  }
 })
 
 export default router
