@@ -167,3 +167,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
 
 ACCOUNT_EMAIL_VERIFICATION = 'none'
+
+# REST_AUTH = {
+#     'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
+# }

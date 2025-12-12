@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 
 export const useSavingStore = defineStore('saving', () => {
-  const API_URL = 'http://127.0.0.1:8000'
+  const API_URL = import.meta.env.VITE_API_URL
   const savings = ref([])
 
   const getSavings = function () {
