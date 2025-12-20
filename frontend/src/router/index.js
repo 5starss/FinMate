@@ -5,6 +5,8 @@ import DepositView from '@/views/DepositView.vue'
 import SavingView from '@/views/SavingView.vue'
 import SignUpView from '@/views/SignUpView.vue'
 import LogInView from '@/views/LogInView.vue'
+import SearchView from '@/views/SearchView.vue'
+import VideoDetail from '@/views/VideoDetail.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -33,7 +35,27 @@ const router = createRouter({
       path: '/login',
       name: 'LogInView',
       component: LogInView
-    }
+    },
+    {
+      path: '/search',
+      name: 'SearchView',
+      component: SearchView
+    },
+    {
+      path: '/video/:id',
+      name: 'detail',
+      component: VideoDetail
+    },
+    // {
+    //   path: '/later',
+    //   name: 'later',
+    //   component: LaterView
+    // },
+    // {
+    //   path: '/channels',
+    //   name: 'channels',
+    //   component: ChannelView
+    // },
   ]
 })
 
