@@ -28,6 +28,16 @@ const router = createRouter({
       component: SavingView,
     },
     {
+      path: '/deposit/:id',
+      name: 'DepositDetailView',
+      component: () => import('@/views/DepositDetailView.vue'),
+    },
+    {
+      path: '/saving/:id',
+      name: 'SavingDetailView',
+      component: () => import('@/views/SavingDetailView.vue'),
+    },
+    {
       path: '/signup',
       name: 'SignUpView',
       component: SignUpView

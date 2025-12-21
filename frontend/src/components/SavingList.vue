@@ -6,14 +6,15 @@
         v-for="saving in savings" 
         :key="saving.id"
       >
-        {{ saving.kor_co_nm }} - {{ saving.fin_prdt_nm }}
+        <router-link :to="`/saving/${saving.id}`">
+          {{ saving.kor_co_nm }} - {{ saving.fin_prdt_nm }}
+        </router-link>
       </li>
     </ul>
   </div>
 </template>
 
 <script setup>
-// ✅ store 제거
 defineProps({
   savings: {
     type: Array,
