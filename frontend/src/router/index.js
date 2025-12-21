@@ -7,6 +7,7 @@ import SignUpView from '@/views/SignUpView.vue'
 import LogInView from '@/views/LogInView.vue'
 import SearchView from '@/views/SearchView.vue'
 import VideoDetail from '@/views/VideoDetail.vue'
+import MapView from '@/views/MapView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -46,16 +47,11 @@ const router = createRouter({
       name: 'detail',
       component: VideoDetail
     },
-    // {
-    //   path: '/later',
-    //   name: 'later',
-    //   component: LaterView
-    // },
-    // {
-    //   path: '/channels',
-    //   name: 'channels',
-    //   component: ChannelView
-    // },
+    {
+      path: '/map', 
+      name: 'MapView',
+      component: MapView
+    }
   ]
 })
 
