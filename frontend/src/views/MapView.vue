@@ -1,191 +1,303 @@
 <template>
-    <div class="bank-container">
-      <div class="search-panel">
-        <h3>은행</h3>
-        
-        <div class="form-group">
-          <label>광역시/도</label>
-          <select v-model="selectedCity" @change="onCityChange" class="form-control">
-            <option value="">지역을 선택하세요</option>
-            <option v-for="city in mapInfo" :key="city.name" :value="city.name">
-              {{ city.name }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>시/군/구</label>
-          <select v-model="selectedDistrict" :disabled="!selectedCity" class="form-control">
-            <option value="">시/군/구를 선택하세요</option>
-            <option v-for="district in availableDistricts" :key="district" :value="district">
-              {{ district }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>은행</label>
-          <select v-model="selectedBank" class="form-control">
-            <option value="">은행을 선택하세요</option>
-            <option v-for="bank in bankList" :key="bank" :value="bank">
-              {{ bank }}
-            </option>
-          </select>
-        </div>
-
-        <button @click="searchPlaces" class="btn btn-primary search-btn">
-          찾기
-        </button>
+  <div class="bank-container">
+    <div class="search-panel">
+      <h3>은행</h3>
+      
+      <div class="form-group">
+        <label>광역시/도</label>
+        <select v-model="selectedCity" @change="onCityChange" class="form-control">
+          <option value="">지역을 선택하세요</option>
+          <option v-for="city in mapInfo" :key="city.name" :value="city.name">
+            {{ city.name }}
+          </option>
+        </select>
       </div>
 
-      <div id="map" class="map-area"></div>
+      <div class="form-group">
+        <label>시/군/구</label>
+        <select v-model="selectedDistrict" :disabled="!selectedCity" class="form-control">
+          <option value="">시/군/구를 선택하세요</option>
+          <option v-for="district in availableDistricts" :key="district" :value="district">
+            {{ district }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>은행</label>
+        <select v-model="selectedBank" class="form-control">
+          <option value="">은행을 선택하세요</option>
+          <option v-for="bank in bankList" :key="bank" :value="bank">
+            {{ bank }}
+          </option>
+        </select>
+      </div>
+
+      <button @click="searchPlaces" class="btn btn-primary search-btn">
+        찾기
+      </button>
+      <p v-if="searchExecuted" class="info-text">
+        📢 마커를 클릭하면 현재 위치로부터<br>경로를 출력합니다.
+      </p>
     </div>
-  </template>
+
+    <div id="map" class="map-area"></div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
+
+const KAKAO_KEY=import.meta.env.VITE_KAKAO_JS_KEY
+const KAKAO_REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY
+
+const mapInfo = ref([])
+const bankList = ref([])
+
+const selectedCity = ref('')
+const selectedDistrict = ref('')
+const selectedBank = ref('')
+const searchExecuted = ref(false)
+
+let map = null
+let ps = null
+let infowindow = null
+let markers = []
+let currentPolyline = null // 현재 그려진 경로선
+let userLocation = null    // 내 위치 저장용 (경로 탐색 시작점)
+
+// 시/군/구 목록 계산
+const availableDistricts = computed(() => {
+  if (!selectedCity.value) return []
+  // mapInfo에서 선택된 도시 객체를 찾음
+  const cityData = mapInfo.value.find(c => c.name === selectedCity.value)
   
-  <script setup>
-  import { ref, computed, onMounted } from 'vue'
-  import axios from 'axios'
+  return cityData ? (cityData.countries || cityData.districts) : []
+})
 
-  const KAKAO_KEY=import.meta.env.VITE_KAKAO_JS_KEY
-  console.log('현재 카카오 키:', KAKAO_KEY)
+// 이벤트 핸들러
+const onCityChange = () => {
+  selectedDistrict.value = '' // 도시가 바뀌면 구 선택 초기화
+}
 
-  const mapInfo = ref([])
-  const bankList = ref([])
+onMounted(async () => {
+  // JSON 데이터 불러오기
+  await loadData()
 
-  const selectedCity = ref('')
-  const selectedDistrict = ref('')
-  const selectedBank = ref('')
-
-  let map = null
-  let ps = null
-  let infowindow = null
-  let markers = []
-
-  // 4. Computed: 시/군/구 목록 계산
-  const availableDistricts = computed(() => {
-    if (!selectedCity.value) return []
-    // mapInfo에서 선택된 도시 객체를 찾음
-    const cityData = mapInfo.value.find(c => c.name === selectedCity.value)
-    
-    // map.html 코드를 보니 속성명이 'countries' 였으므로 그것을 사용합니다.
-    // 만약 json 파일 속성명이 'districts'라면 cityData.districts로 바꿔주세요.
-    return cityData ? (cityData.countries || cityData.districts) : []
-  })
-
-  // 5. 이벤트 핸들러
-  const onCityChange = () => {
-    selectedDistrict.value = '' // 도시가 바뀌면 구 선택 초기화
+  // 카카오맵 로드
+  if (window.kakao && window.kakao.maps) {
+    initMap()
+  } else {
+    loadKakaoScript()
   }
+})
 
-  // 6. 라이프사이클 (마운트 시 실행)
-  onMounted(async () => {
-    // 6-1. JSON 데이터 불러오기
-    await loadData()
+// data.json 불러오는 함수
+const loadData = async () => {
+  try {
+    // public 폴더에 있는 data.json 요청
+    const response = await axios.get('/data.json')
+    const data = response.data
+    
+    // 가져온 데이터를 변수에 저장
+    mapInfo.value = data.mapInfo
+    bankList.value = data.bankInfo
+    
+    console.log("데이터 로드 완료:", mapInfo.value)
+  } catch (error) {
+    console.error("data.json 로드 실패:", error)
+    alert("데이터 파일을 불러오지 못했습니다.")
+  }
+}
 
-    // 6-2. 카카오맵 로드
-    if (window.kakao && window.kakao.maps) {
-      initMap()
+const loadKakaoScript = () => {
+  const script = document.createElement('script')
+  script.src = `//dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey=${KAKAO_KEY}&libraries=services`
+  script.onload = () => window.kakao.maps.load(initMap)
+  document.head.appendChild(script)
+}
+
+const initMap = () => {
+  const container = document.getElementById('map')
+  const options = {
+    center: new window.kakao.maps.LatLng(37.49818, 127.027386), // 강남역
+    level: 3
+  }
+  map = new window.kakao.maps.Map(container, options)
+  ps = new window.kakao.maps.services.Places()
+  infowindow = new window.kakao.maps.InfoWindow({ zIndex: 1 })
+
+  // 내 위치 저장
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      const lat = position.coords.latitude
+      const lon = position.coords.longitude
+      userLocation = { lat, lon } // 내 위치 저장
+      
+      const locPosition = new window.kakao.maps.LatLng(lat, lon)
+      map.setCenter(locPosition)
+      
+      // 내 위치 마커 표시
+      new window.kakao.maps.Marker({
+        map: map,
+        position: locPosition,
+        title: '내 위치'
+      })
+    })
+  }
+}
+
+const searchPlaces = () => {
+  if (!selectedCity.value || !selectedDistrict.value || !selectedBank.value) {
+    alert("지역과 은행을 모두 선택해주세요.")
+    return
+  }
+  const keyword = `${selectedCity.value} ${selectedDistrict.value} ${selectedBank.value}`
+  console.log("검색 키워드:", keyword)
+  
+  removeMarkers() // 기존 마커 제거
+  removeRoute()   // 기존 경로 제거
+
+  ps.keywordSearch(keyword, placesSearchCB)
+}
+
+const placesSearchCB = (data, status) => {
+  if (status === window.kakao.maps.services.Status.OK) {
+    searchExecuted.value = true // 안내 문구 표시
+    // alert("마커를 클릭하면 현재 위치로부터 경로를 출력합니다.") // 알림창
+
+    const bounds = new window.kakao.maps.LatLngBounds()
+    for (let i = 0; i < data.length; i++) {
+      displayMarker(data[i])
+      bounds.extend(new window.kakao.maps.LatLng(data[i].y, data[i].x))
+    }
+    map.setBounds(bounds)
+  } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
+    alert("검색 결과가 없습니다.")
+  } else if (status === window.kakao.maps.services.Status.ERROR) {
+    alert("검색 중 오류가 발생했습니다.")
+  }
+}
+
+const displayMarker = (place) => {
+  const marker = new window.kakao.maps.Marker({
+    map: map,
+    position: new window.kakao.maps.LatLng(place.y, place.x)
+  })
+  markers.push(marker)
+  window.kakao.maps.event.addListener(marker, 'click', () => {
+    const content = `
+      <div style="padding:10px; font-size:12px; width:200px;">
+        <strong>${place.place_name}</strong><br>
+        <span style="color:gray;">${place.address_name}</span><br>
+        <a href="${place.place_url}" target="_blank" style="color:blue;">상세보기</a>
+      </div>`
+
+    infowindow.setContent(content)
+    infowindow.open(map, marker)
+
+    // 길찾기(경로 탐색) 실행
+    if (userLocation) {
+      const destination = { lat: place.y, lon: place.x }
+      getCarDirection(userLocation, destination)
     } else {
-      loadKakaoScript()
+      alert("내 위치 정보를 가져올 수 없어 경로를 찾을 수 없습니다.")
     }
   })
+}
+// 자동차 경로 찾기 (Kakao Mobility API)
+const getCarDirection = async (start, end) => {
+  // 기존 경로 지우기
+  removeRoute()
 
-  // [핵심] data.json 불러오는 함수
-  const loadData = async () => {
-    try {
-      // public 폴더에 있는 data.json 요청
-      const response = await axios.get('/data.json')
-      const data = response.data
-      
-      // 가져온 데이터를 변수에 저장
-      mapInfo.value = data.mapInfo
-      bankList.value = data.bankInfo
-      
-      console.log("데이터 로드 완료:", mapInfo.value)
-    } catch (error) {
-      console.error("data.json 로드 실패:", error)
-      alert("데이터 파일을 불러오지 못했습니다.")
-    }
-  }
+  // 카카오 모빌리티 API는 "경도(x),위도(y)" 순서로 파라미터를 받음
+  const origin = `${start.lon},${start.lat}`
+  const destination = `${end.lon},${end.lat}`
 
-  const loadKakaoScript = () => {
-    const script = document.createElement('script')
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey=${KAKAO_KEY}&libraries=services`
-    script.onload = () => window.kakao.maps.load(initMap)
-    document.head.appendChild(script)
-  }
-  
-  const initMap = () => {
-    const container = document.getElementById('map')
-    const options = {
-      center: new window.kakao.maps.LatLng(37.49818, 127.027386), // 강남역
-      level: 3
-    }
-    map = new window.kakao.maps.Map(container, options)
-    ps = new window.kakao.maps.services.Places()
-    infowindow = new window.kakao.maps.InfoWindow({ zIndex: 1 })
-  }
-  
-  const searchPlaces = () => {
-    if (!selectedCity.value || !selectedDistrict.value || !selectedBank.value) {
-      alert("지역과 은행을 모두 선택해주세요.")
-      return
-    }
-    const keyword = `${selectedCity.value} ${selectedDistrict.value} ${selectedBank.value}`
-    console.log("검색 키워드:", keyword)
-    
-    removeMarkers()
-    ps.keywordSearch(keyword, placesSearchCB)
-  }
-
-  const placesSearchCB = (data, status) => {
-    if (status === window.kakao.maps.services.Status.OK) {
-      const bounds = new window.kakao.maps.LatLngBounds()
-      for (let i = 0; i < data.length; i++) {
-        displayMarker(data[i])
-        bounds.extend(new window.kakao.maps.LatLng(data[i].y, data[i].x))
+  try {
+    // 프록시(/navi)를 통해 요청
+    const response = await axios.get('/navi/v1/directions', {
+      params: { origin, destination },
+      headers: {
+        Authorization: `KakaoAK ${KAKAO_REST_KEY}` // REST API 키 사용
       }
-      map.setBounds(bounds)
-    } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
-      alert("검색 결과가 없습니다.")
-    } else if (status === window.kakao.maps.services.Status.ERROR) {
-      alert("검색 중 오류가 발생했습니다.")
-    }
-  }
-
-  const displayMarker = (place) => {
-    const marker = new window.kakao.maps.Marker({
-      map: map,
-      position: new window.kakao.maps.LatLng(place.y, place.x)
     })
-    markers.push(marker)
-    window.kakao.maps.event.addListener(marker, 'click', () => {
-      const content = `
-        <div style="padding:10px; font-size:12px; width:200px;">
-          <strong>${place.place_name}</strong><br>
-          <span style="color:gray;">${place.address_name}</span><br>
-          <a href="${place.place_url}" target="_blank" style="color:blue;">상세보기</a>
-        </div>`
-      infowindow.setContent(content)
-      infowindow.open(map, marker)
-    })
-  }
 
-  const removeMarkers = () => {
-    for (let i = 0; i < markers.length; i++) {
-      markers[i].setMap(null)
+    if (response.data.routes && response.data.routes.length > 0) {
+      const linePath = []
+      const sections = response.data.routes[0].sections
+
+      // 경로 데이터 파싱 (vertexes는 [x, y, x, y...] 형태로 들어옴)
+      sections.forEach(section => {
+        section.roads.forEach(road => {
+          for (let i = 0; i < road.vertexes.length; i += 2) {
+            linePath.push(new window.kakao.maps.LatLng(
+              road.vertexes[i + 1], // 위도 (y)
+              road.vertexes[i]      // 경도 (x)
+            ))
+          }
+        })
+      })
+
+      // 지도에 경로 그리기 
+      currentPolyline = new window.kakao.maps.Polyline({
+        path: linePath,
+        strokeWeight: 5,
+        strokeColor: '#0000FF',
+        strokeOpacity: 0.7,
+        strokeStyle: 'solid'
+      })
+
+      currentPolyline.setMap(map)
+      
+      // 인포윈도우로 거리/시간 표시
+      const distance = response.data.routes[0].summary.distance // 미터 단위
+      const duration = Math.round(response.data.routes[0].summary.duration / 60) // 분 단위
+      alert(`경로 탐색 완료! 약 ${duration}분 소요 (${distance}m)`)
+      
+    } else {
+      alert("경로를 찾을 수 없습니다.")
     }
-    markers = []
+
+  } catch (error) {
+    console.error("경로 찾기 실패:", error)
+    alert("경로 데이터를 불러오는 데 실패했습니다. REST API 키를 확인해주세요.")
   }
-  </script>
-  
-  <style scoped>
-  .bank-container { display: flex; height: calc(100vh - 70px); }
-  .search-panel { width: 300px; padding: 20px; background-color: #f8f9fa; border-right: 1px solid #ddd; overflow-y: auto; }
-  .map-area { flex-grow: 1; width: 100%; height: 100%; }
-  .form-group { margin-bottom: 15px; }
-  .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-  .form-control { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-  .search-btn { width: 100%; padding: 10px; margin-top: 10px; background-color: #0d6efd; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-  .search-btn:hover { background-color: #0b5ed7; }
-  </style>
+}
+
+// 경로선 제거 함수
+const removeRoute = () => {
+  if (currentPolyline) {
+    currentPolyline.setMap(null)
+    currentPolyline = null
+  }
+}
+
+const removeMarkers = () => {
+  for (let i = 0; i < markers.length; i++) {
+    markers[i].setMap(null)
+  }
+  markers = []
+}
+</script>
+
+<style scoped>
+.info-text {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #e7f1ff;
+  border-radius: 5px;
+  font-size: 14px;
+  color: #0d6efd;
+  font-weight: bold;
+}
+.bank-container { display: flex; height: calc(100vh - 70px); }
+.search-panel { width: 300px; padding: 20px; background-color: #f8f9fa; border-right: 1px solid #ddd; overflow-y: auto; }
+.map-area { flex-grow: 1; width: 100%; height: 100%; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+.form-control { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+.search-btn { width: 100%; padding: 10px; margin-top: 10px; background-color: #0d6efd; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+.search-btn:hover { background-color: #0b5ed7; }
+</style>
