@@ -15,4 +15,13 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    proxy: {
+      '/navi': {
+        target: 'https://apis-navi.kakaomobility.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/navi/, '')
+      }
+    }
+  }
 })

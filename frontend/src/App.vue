@@ -6,7 +6,8 @@
       <RouterLink :to="{ name: 'SavingView' }">적금</RouterLink> |
       <RouterLink :to="{ name: 'SignUpView' }">SignUpPage</RouterLink> |
       <RouterLink :to="{ name: 'LogInView' }">LogInPage</RouterLink> | 
-      <RouterLink :to="{ name: 'SearchView' }">비디오 검색</RouterLink> 
+      <RouterLink :to="{ name: 'SearchView' }">비디오 검색</RouterLink> |
+      <RouterLink :to="{ name: 'MapView' }">지도</RouterLink> |
       <form @submit.prevent="logOut">
         <input type="submit" value="LogOut">
       </form>
