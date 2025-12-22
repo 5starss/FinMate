@@ -1,92 +1,165 @@
 <template>
-  <header class="header">
-    <div class="header-content">
-      <RouterLink to="/" class="logo">
-        FinMate
-      </RouterLink>
+  <header class="header-wrapper">
+    <div class="top-bar">
+      <div class="inner-container top-content">
+        <div class="user-menu">
+          <ul>
+            <template v-if="store.isLogin">
+              <li class="greeting">
+                <span class="username">{{ store.username }}</span>님 환영합니다
+              </li>
+              <li>
+                <a @click.prevent="handleLogout" class="util-link logout-btn">로그아웃</a>
+              </li>
+            </template>
+            <template v-else>
+              <li> 
+                <RouterLink :to="{ name: 'LogInView' }" class="util-link">로그인</RouterLink>
+              </li>
+              <li>
+                <RouterLink :to="{ name: 'SignUpView' }" class="util-link">회원가입</RouterLink>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </div>
+    </div>
 
-      <nav class="nav-links">
-        <RouterLink :to="{ name: 'DepositView' }">예금비교</RouterLink>
-        <RouterLink :to="{ name: 'SavingView' }">적금비교</RouterLink>
-        <!-- <RouterLink to="/articles">커뮤니티</RouterLink> -->
-        <RouterLink :to="{ name: 'SearchView' }">비디오 검색</RouterLink>
-        <RouterLink :to="{ name: 'MapView' }">지도</RouterLink>
-        <RouterLink :to="{ name: 'ChartView' }">현물검색</RouterLink>
-      </nav>
+    <div class="main-header">
+      <div class="inner-container nav-content">
+        <RouterLink to="/" class="logo">
+          FinMate
+        </RouterLink>
 
-      <div class="user-actions">
-        <RouterLink to="/login" class="login-btn">로그인</RouterLink>
-        <RouterLink to="/signup" class="signup-btn">회원가입</RouterLink>
+        <nav class="nav-links">
+          <RouterLink :to="{ name: 'DepositView' }">예금비교</RouterLink>
+          <RouterLink :to="{ name: 'SavingView' }">적금비교</RouterLink>
+          <!-- <RouterLink to="/articles">커뮤니티</RouterLink> -->
+          <RouterLink :to="{ name: 'SearchView' }">비디오 검색</RouterLink>
+          <RouterLink :to="{ name: 'MapView' }">지도</RouterLink>
+          <RouterLink :to="{ name: 'ChartView' }">현물검색</RouterLink>
+        </nav>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
+import { useCounterStore } from '@/stores/counter' // 스토어 import
+
+const store = useCounterStore()
+const router = useRouter()
+
+// 로그아웃 핸들러
+const handleLogout = () => {
+  const confirmLogout = confirm('로그아웃 하시겠습니까?')
+  if (confirmLogout) {
+    store.logOut()
+    alert('로그아웃 되었습니다.')
+    router.push('/') // 메인 페이지로 이동
+  }
+}
 </script>
 
 <style scoped>
-/* 헤더 스타일 */
-.header {
-  background-color: #fff;
-  border-bottom: 1px solid #eee; /* 하단 구분선 추가 */
-  position: sticky; /* 스크롤 내려도 상단 고정 (선택사항) */
-  top: 0;
-  z-index: 1000;
-}
-
-.header-content {
+/* 공통 레이아웃 (가운데 정렬용) */
+.inner-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 15px 20px;
+  padding: 0 20px;
+}
+
+/* 1. 상단 유틸리티 바 스타일 */
+.top-bar {
+  border-bottom: 1px solid #eee;
+  font-size: 13px; /* 작은 글씨 */
+  padding: 10px 0;
+}
+
+.top-content {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end; /* 오른쪽 정렬 */
+}
+
+.user-menu ul {
+  display: flex;
   align-items: center;
+  /* margin-left: 2.4rem; */
+  gap: 10px;
+}
+
+.user-menu li {
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  /* margin-left: 2.4rem; */
+}
+
+.util-link {
+  text-decoration: none;
+  color: #666;
+  cursor: pointer;
+  padding: 0 10px;
+  transition: color 0.2s;
+}
+
+.util-link:hover {
+  text-decoration: underline;
+}
+
+/* 2. 메인 헤더 스타일 */
+.main-header {
+  background-color: #fff;
+  padding: 20px 0;
+  border-bottom: 1px solid #eee; /* 헤더 하단 구분선 */
+}
+
+.nav-content {
+  display: flex;
+  align-items: center;
+  /* 로고와 메뉴 사이 간격 조절 */
+  gap: 60px; 
 }
 
 .logo {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
-  color: #2F65F6; /* 포인트 컬러 */
+  color: #2F65F6;
   text-decoration: none;
 }
 
 .nav-links {
   display: flex;
-  gap: 30px;
+  gap: 40px; /* 메뉴 간격 넓게 */
 }
 
 .nav-links a {
   text-decoration: none;
   color: #333;
-  font-weight: 500;
-  font-size: 16px;
-  transition: color 0.2s;
+  font-weight: 600;
+  font-size: 17px;
+  position: relative; /* 밑줄 효과를 위해 필요 */
 }
 
-.nav-links a:hover, .nav-links a.router-link-active {
-  color: #2F65F6; /* 마우스 올리거나 현재 페이지일 때 색상 변경 */
+/* 메뉴 호버 효과 (파란색 + 밑줄) */
+.nav-links a:hover,
+.nav-links a.router-link-active {
+  color: #2F65F6;
 }
 
-.user-actions {
-  display: flex;
-  gap: 15px;
-}
-
-.login-btn {
-  text-decoration: none;
+.greeting {
   color: #666;
-  font-weight: 500;
+  cursor: default; /* 드래그/클릭 느낌 제거 */
 }
-
-.signup-btn {
-  text-decoration: none;
-  background-color: #2F65F6;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 14px;
+.username {
+  font-weight: 700;
+  color: #333;
+}
+.logout-btn {
+  color: #999; /* 로그아웃은 약간 흐리게 */
+}
+.logout-btn:hover {
+  color: #ff4d4f; /* 로그아웃 호버 시 빨간색 경고 느낌 */
 }
 </style>
