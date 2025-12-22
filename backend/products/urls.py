@@ -2,13 +2,13 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('deposit/', views.deposit_list),
-    path('saving/', views.saving_list),
+    path('deposit/', views.deposit_list),  # 리스트 조회 기능 유지
+    path('saving/', views.saving_list),  # 리스트 조회 기능 유지
 
-     #F03-03 (Vue가 호출할 API)
-    path('api/deposits/<int:pk>/', views.DepositDetailAPIView.as_view()),
-    path('api/deposits/<int:pk>/subscribe/', views.DepositSubscribeAPIView.as_view()),
-
-    path('api/savings/<int:pk>/', views.SavingDetailAPIView.as_view()),
-    path('api/savings/<int:pk>/subscribe/', views.SavingSubscribeAPIView.as_view()),
+    # 상세 조회 및 구독 관련 API 경로 수정
+    path('deposits/<int:pk>/', views.deposit_detail, name='deposit_detail'),
+    path('deposits/<int:pk>/subscribe/', views.deposit_subscribe, name='deposit_subscribe'),
+    
+    path('savings/<int:pk>/', views.saving_detail, name='saving_detail'),
+    path('savings/<int:pk>/subscribe/', views.saving_subscribe, name='saving_subscribe'),
 ]

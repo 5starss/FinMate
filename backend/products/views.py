@@ -117,53 +117,42 @@ def saving_list(request):
         serializer = SavingProductsSerializer(saving, many=True)
         return Response(serializer.data)
 
-class DepositDetailAPIView(APIView):
-    permission_classes = [AllowAny]
+@api_view(['GET'])
+def deposit_detail(request, pk):
+    product = get_object_or_404(DepositProducts, pk=pk)
+    data = DepositProductDetailSerializer(product).data
 
-    def get(self, request, pk):
-        product = get_object_or_404(DepositProducts, pk=pk)
-        data = DepositProductDetailSerializer(product).data
+    # Vue 편의: 로그인 유저면 가입 여부도 같이 내려줌
+    data["is_joined"] = (
+        request.user.is_authenticated and
+        DepositSubscription.objects.filter(user=request.user, product=product).exists()
+    )
+    return Response(data, status=status.HTTP_200_OK)
 
-        # Vue 편의: 로그인 유저면 가입 여부도 같이 내려줌
-        data["is_joined"] = (
-            request.user.is_authenticated and
-            DepositSubscription.objects.filter(user=request.user, product=product).exists()
-        )
-        return Response(data, status=status.HTTP_200_OK)
+@api_view(['GET'])
+def saving_detail(request, pk):
+    product = get_object_or_404(SavingProducts, pk=pk)
+    data = SavingProductDetailSerializer(product).data
+    data["is_joined"] = (
+        request.user.is_authenticated and
+        SavingSubscription.objects.filter(user=request.user, product=product).exists()
+    )
+    return Response(data, status=status.HTTP_200_OK)
 
+@api_view(['POST'])
+def deposit_subscribe(request, pk):
+    product = get_object_or_404(DepositProducts, pk=pk)
+    _, created = DepositSubscription.objects.get_or_create(
+        user=request.user,
+        product=product
+    )
+    return Response({"joined": True, "created": created}, status=status.HTTP_200_OK)
 
-class SavingDetailAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request, pk):
-        product = get_object_or_404(SavingProducts, pk=pk)
-        data = SavingProductDetailSerializer(product).data
-        data["is_joined"] = (
-            request.user.is_authenticated and
-            SavingSubscription.objects.filter(user=request.user, product=product).exists()
-        )
-        return Response(data, status=status.HTTP_200_OK)
-
-
-class DepositSubscribeAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, pk):
-        product = get_object_or_404(DepositProducts, pk=pk)
-        _, created = DepositSubscription.objects.get_or_create(
-            user=request.user,
-            product=product
-        )
-        return Response({"joined": True, "created": created}, status=status.HTTP_200_OK)
-
-
-class SavingSubscribeAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, pk):
-        product = get_object_or_404(SavingProducts, pk=pk)
-        _, created = SavingSubscription.objects.get_or_create(
-            user=request.user,
-            product=product
-        )
-        return Response({"joined": True, "created": created}, status=status.HTTP_200_OK)
+@api_view(['POST'])
+def saving_subscribe(request, pk):
+    product = get_object_or_404(SavingProducts, pk=pk)
+    _, created = SavingSubscription.objects.get_or_create(
+        user=request.user,
+        product=product
+    )
+    return Response({"joined": True, "created": created}, status=status.HTTP_200_OK)
