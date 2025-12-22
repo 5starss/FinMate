@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 # Create your models here.
 class DepositProducts(models.Model):
@@ -49,3 +50,23 @@ class SavingOptions(models.Model):
 
     def __str__(self):
         return f"{self.intr_rate_type_nm} - {self.save_trm}개월 ({self.intr_rate_type_nm})"
+
+class DepositSubscription(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    product = models.ForeignKey(DepositProducts, on_delete=models.CASCADE)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "product"], name="uniq_user_deposit_product")
+        ]
+
+class SavingSubscription(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    product = models.ForeignKey(SavingProducts, on_delete=models.CASCADE)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "product"], name="uniq_user_saving_product")
+        ]

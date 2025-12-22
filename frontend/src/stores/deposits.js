@@ -7,16 +7,26 @@ export const useDepositStore = defineStore('deposit', () => {
   const deposits = ref([])
 
   const getDeposits = function () {
-    axios({
+    return axios({
       method: 'get',
       url: `${API_URL}/products/deposit/`,
     })
       .then(res => {
-        console.log(res.data)
         deposits.value = res.data
+        return res
       })
-      .catch(err => console.log(err))
+      .catch(err => {
+        console.log('getDeposits error:', err)
+        throw err
+      })
   }
 
-  return { deposits, getDeposits, API_URL }
+  const getDepositDetail = function (id) {
+    return axios({
+      method: 'get',
+      url: `${API_URL}/products/api/deposits/${id}/`,
+    })
+  }
+
+  return { deposits, getDeposits, getDepositDetail, API_URL }
 }, { persist: true })

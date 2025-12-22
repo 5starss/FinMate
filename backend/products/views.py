@@ -2,10 +2,12 @@ from django.shortcuts import get_object_or_404, get_list_or_404
 from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 import requests, json
-from .models import DepositProducts, DepositOptions, SavingProducts, SavingOptions
-from .selializers import DepositProductsSerializer, DepositOptionsSerializer, SavingProductsSerializer, SavingOptionsSerializer
+from .models import DepositProducts, DepositOptions, SavingProducts, SavingOptions, DepositSubscription, SavingSubscription
+from .selializers import DepositProductsSerializer, DepositOptionsSerializer, SavingProductsSerializer, SavingOptionsSerializer, DepositProductDetailSerializer, SavingProductDetailSerializer
 
 
 API_KEY = settings.API_KEY
@@ -114,3 +116,43 @@ def saving_list(request):
         saving = get_list_or_404(SavingProducts)
         serializer = SavingProductsSerializer(saving, many=True)
         return Response(serializer.data)
+
+@api_view(['GET'])
+def deposit_detail(request, pk):
+    product = get_object_or_404(DepositProducts, pk=pk)
+    data = DepositProductDetailSerializer(product).data
+
+    # Vue 편의: 로그인 유저면 가입 여부도 같이 내려줌
+    data["is_joined"] = (
+        request.user.is_authenticated and
+        DepositSubscription.objects.filter(user=request.user, product=product).exists()
+    )
+    return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def saving_detail(request, pk):
+    product = get_object_or_404(SavingProducts, pk=pk)
+    data = SavingProductDetailSerializer(product).data
+    data["is_joined"] = (
+        request.user.is_authenticated and
+        SavingSubscription.objects.filter(user=request.user, product=product).exists()
+    )
+    return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def deposit_subscribe(request, pk):
+    product = get_object_or_404(DepositProducts, pk=pk)
+    _, created = DepositSubscription.objects.get_or_create(
+        user=request.user,
+        product=product
+    )
+    return Response({"joined": True, "created": created}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def saving_subscribe(request, pk):
+    product = get_object_or_404(SavingProducts, pk=pk)
+    _, created = SavingSubscription.objects.get_or_create(
+        user=request.user,
+        product=product
+    )
+    return Response({"joined": True, "created": created}, status=status.HTTP_200_OK)
