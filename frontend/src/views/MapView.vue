@@ -36,9 +36,18 @@
       <button @click="searchPlaces" class="btn btn-primary search-btn">
         찾기
       </button>
-      <p v-if="searchExecuted" class="info-text">
-        📢 마커를 클릭하면 현재 위치로부터<br>경로를 출력합니다.
-      </p>
+
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
+
+      <div class="route-mode-box">
+        <label class="switch-label">
+          <input type="checkbox" v-model="isRouteMode" @change="onModeChange">
+          <span class="mode-text">길찾기</span>
+        </label>
+        <p class="mode-desc">
+          {{ isRouteMode ? 'ON: 마커를 누르면 경로가 표시됩니다.' : 'OFF: 마커를 누르면 정보만 표시됩니다.' }}
+        </p>
+      </div>
     </div>
 
     <div id="map" class="map-area"></div>
@@ -59,6 +68,7 @@ const selectedCity = ref('')
 const selectedDistrict = ref('')
 const selectedBank = ref('')
 const searchExecuted = ref(false)
+const isRouteMode = ref(false)
 
 let map = null
 let ps = null
@@ -79,6 +89,13 @@ const availableDistricts = computed(() => {
 // 이벤트 핸들러
 const onCityChange = () => {
   selectedDistrict.value = '' // 도시가 바뀌면 구 선택 초기화
+}
+
+// 길찾기 모드 변경 시 기존 경로 제거
+const onModeChange = () => {
+  if (!isRouteMode.value) {
+    removeRoute()
+  }
 }
 
 onMounted(async () => {
@@ -128,23 +145,48 @@ const initMap = () => {
   ps = new window.kakao.maps.services.Places()
   infowindow = new window.kakao.maps.InfoWindow({ zIndex: 1 })
 
+  const geoOptions = {
+    enableHighAccuracy: true, // 정확도 우선 모드 켜기
+    maximumAge: 0,            // 캐시된 위치값 쓰지 않고 매번 새로 찾기
+    timeout: 10000            // 10초 안에 못 찾으면 에러 처리
+  }
+
   // 내 위치 저장
   if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition((position) => {
-      const lat = position.coords.latitude
-      const lon = position.coords.longitude
-      userLocation = { lat, lon } // 내 위치 저장
-      
-      const locPosition = new window.kakao.maps.LatLng(lat, lon)
-      map.setCenter(locPosition)
-      
-      // 내 위치 마커 표시
-      new window.kakao.maps.Marker({
-        map: map,
-        position: locPosition,
-        title: '내 위치'
-      })
-    })
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude
+        const lon = position.coords.longitude
+        userLocation = { lat, lon } // 내 위치 저장
+        
+        const locPosition = new window.kakao.maps.LatLng(lat, lon)
+        map.setCenter(locPosition)
+
+        // 내 위치 마커 표시
+        const myMarker = new window.kakao.maps.Marker({
+          map: map,
+          position: locPosition,
+          title: '내 위치',
+          image: new window.kakao.maps.MarkerImage(
+            'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png', // 빨간색 마커로 구분
+            new window.kakao.maps.Size(30, 40)
+          ),
+          draggable: true // 마커를 움직일 수 있게 함
+        })
+
+        // 마커를 옮기면 옮긴 위치를 '내 위치'로 다시 저장
+        window.kakao.maps.event.addListener(myMarker, 'dragend', () => {
+          const newPos = myMarker.getPosition()
+          userLocation = { lat: newPos.getLat(), lon: newPos.getLng() }
+          console.log("내 위치가 사용자에 의해 수정됨:", userLocation)
+        })
+      },
+      (err) => {
+        console.error("위치 정보 에러:", err)
+        alert("위치 정보를 가져올 수 없습니다. 기본 위치로 설정합니다.")
+      },
+      geoOptions 
+    )
   }
 }
 
@@ -197,12 +239,14 @@ const displayMarker = (place) => {
     infowindow.setContent(content)
     infowindow.open(map, marker)
 
-    // 길찾기(경로 탐색) 실행
-    if (userLocation) {
-      const destination = { lat: place.y, lon: place.x }
-      getCarDirection(userLocation, destination)
-    } else {
-      alert("내 위치 정보를 가져올 수 없어 경로를 찾을 수 없습니다.")
+    // 길찾기 모드일 경우 길찾기(경로 탐색) 실행
+    if (isRouteMode.value) {
+      if (userLocation) {
+        const destination = { lat: place.y, lon: place.x }
+        getCarDirection(userLocation, destination)
+      } else {
+        alert("내 위치 정보를 찾을 수 없습니다.")
+      }
     }
   })
 }
@@ -283,6 +327,33 @@ const removeMarkers = () => {
 </script>
 
 <style scoped>
+.route-mode-box {
+  background-color: #e9ecef;
+  padding: 10px;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+
+.switch-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.switch-label input {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.mode-desc {
+  font-size: 12px;
+  color: #666;
+  margin: 5px 0 0 0;
+}
 .info-text {
   margin-top: 15px;
   padding: 10px;
