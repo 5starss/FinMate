@@ -8,6 +8,7 @@ import LogInView from '@/views/LogInView.vue'
 import SearchView from '@/views/SearchView.vue'
 import VideoDetail from '@/views/VideoDetail.vue'
 import MapView from '@/views/MapView.vue'
+import ChartView from '@/views/ChartView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -61,6 +62,11 @@ const router = createRouter({
       path: '/map', 
       name: 'MapView',
       component: MapView
+    },
+    {
+      path: '/chart', 
+      name: 'ChartView',
+      component: ChartView
     }
   ]
 })
