@@ -46,9 +46,9 @@
 
 <script setup>
 import { RouterLink, useRouter } from 'vue-router'
-import { useCounterStore } from '@/stores/counter' // 스토어 import
+import { useAccountStore } from '@/stores/accounts'
 
-const store = useCounterStore()
+const store = useAccountStore()
 const router = useRouter()
 
 // 로그아웃 핸들러

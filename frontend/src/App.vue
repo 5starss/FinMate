@@ -1,9 +1,6 @@
 <template>
   <HeaderNavbar />
 
-  <form @submit.prevent="logOut">
-    <input type="submit" value="LogOut">
-  </form>
   <div class="app-container">
     <RouterView />
   </div>

@@ -6,6 +6,7 @@ import axios from 'axios'
 export const useAccountStore = defineStore('account', () => {
   const API_URL = import.meta.env.VITE_API_URL
   const token = ref(null)
+  const myname = ref(null)
 
   const router = useRouter()
 
@@ -46,6 +47,7 @@ export const useAccountStore = defineStore('account', () => {
         console.log('로그인이 완료되었습니다.')
         console.log(res.data)
         token.value = res.data.key
+        myname.value = username
         router.push({ name: 'HomeView' })
       })
       .catch(err => console.log(err))
@@ -64,6 +66,7 @@ export const useAccountStore = defineStore('account', () => {
     })
       .then(res => {
         token.value = null
+        myname.value = null
         router.push({ name: 'LogInView' })
       })
       .catch(err => console.log(err))
@@ -75,5 +78,6 @@ export const useAccountStore = defineStore('account', () => {
     token,
     isLogin,
     logOut,
+    username: myname,
   }
 }, { persist: true })
