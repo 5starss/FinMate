@@ -8,7 +8,6 @@ class Category(models.Model):
     
     name = models.CharField(max_length=20)
     type = models.CharField(max_length=10, choices=INCOME_EXPENSE_CHOICES)
-    icon = models.CharField(max_length=50, blank=True) # Bootstrap 아이콘 클래스명 저장
 
     def __str__(self):
         return f"[{self.type}] {self.name}"
