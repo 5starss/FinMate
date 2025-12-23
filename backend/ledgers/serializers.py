@@ -1,10 +1,12 @@
 from rest_framework import serializers
 from .models import Category, Transaction, Budget
 
+# ledgers/serializers.py 예시
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = '__all__'
+        read_only_fields = ('user',) # 유저는 요청 데이터가 아닌 서버에서 자동 할당함
 
 class TransactionSerializer(serializers.ModelSerializer):
     # 조회 시 카테고리 이름을 함께 보여주기 위함
