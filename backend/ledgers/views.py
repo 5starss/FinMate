@@ -31,3 +31,15 @@ def transaction_list_create(request):
             # 현재 로그인한 유저를 자동으로 할당하여 저장
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# 3. 가계부 삭제 기능
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def transaction_detail(request, transaction_pk):
+    transaction = get_object_or_404(Transaction, pk=transaction_pk)
+    
+    # 본인의 내역인지 확인 후 삭제
+    if request.user == transaction.user:
+        transaction.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    return Response(status=status.HTTP_403_FORBIDDEN)
