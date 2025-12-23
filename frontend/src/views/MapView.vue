@@ -170,7 +170,14 @@ const initMap = () => {
           image: new window.kakao.maps.MarkerImage(
             'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
             new window.kakao.maps.Size(35, 40)
-          )
+          ),
+          draggable: true
+        })
+        
+        window.kakao.maps.event.addListener(myMarker, 'dragend', () => {
+          const newPos = myMarker.getPosition()
+          userLocation = { lat: newPos.getLat(), lon: newPos.getLng() }
+          console.log("내 위치가 수정됨:", userLocation)
         })
       },
       (err) => {
