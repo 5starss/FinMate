@@ -28,20 +28,23 @@ export const useDepositStore = defineStore('deposit', () => {
     })
   }
 
+  // ✅ 예금 가입 함수 수정
   const subscribeDeposit = function (payload, token) {
-  const { product_id, option_id } = payload
+    // 1. payload에서 amount를 추가로 꺼내옵니다.
+    const { product_id, option_id, amount } = payload
   
-  return axios({
-    method: 'post',
-    url: `${API_URL}/products/deposits/${product_id}/subscribe/`,
-    data: {
-      option_id: option_id
-    },
-    headers: {
-      Authorization: `Token ${token}`
-    }
-  })
-}
+    return axios({
+      method: 'post',
+      url: `${API_URL}/products/deposits/${product_id}/subscribe/`,
+      data: {
+        option_id: option_id,
+        amount: amount // ✅ 2. 서버로 가입 금액을 함께 보냅니다.
+      },
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+  }
 
   return { deposits, getDeposits, getDepositDetail, subscribeDeposit, API_URL }
 }, { persist: true })

@@ -1,6 +1,6 @@
 <template>
   <div v-if="product" class="container mt-4">
-    <h1>{{ product.kor_co_nm }} - {{ product.fin_prdt_nm }}</h1>
+    <h1>{{ product.kor_co_nm }} - {{ product.fin_prdt_nm }} (예금)</h1>
     <hr>
 
     <div class="selection-box p-3 bg-light rounded shadow-sm mb-4">
@@ -19,7 +19,23 @@
             (기본 금리: {{ opt.intr_rate }}% | 최고 우대: {{ opt.intr_rate2 }}%)
           </label>
         </div>
+
+        <div class="mt-4 p-3 border-top bg-white rounded-3">
+          <h5 class="mb-3 fw-bold">가입 금액 설정</h5>
+          <div class="input-group">
+            <span class="input-group-text bg-primary text-white"><i class="bi bi-cash-coin"></i></span>
+            <input 
+              type="number" 
+              v-model="amount" 
+              class="form-control" 
+              placeholder="예치할 금액을 입력하세요 (예: 10000000)"
+            >
+            <span class="input-group-text">원</span>
+          </div>
+          <p class="text-muted small mt-2">* 예금은 목돈을 한 번에 예치하는 상품입니다.</p>
+        </div>
       </div>
+      
       <div v-else class="text-primary fw-bold">
         이미 가입 완료된 상품입니다. 마이페이지에서 상세 정보를 확인하세요!
       </div>
@@ -29,13 +45,13 @@
       <div v-if="isLoggedIn">
         <button 
           @click="clickSubscribe" 
-          :disabled="product.is_joined || !selectedOptionId"
-          :class="product.is_joined ? 'btn btn-secondary' : 'btn btn-primary btn-lg'"
+          :disabled="product.is_joined || !selectedOptionId || !amount"
+          :class="product.is_joined ? 'btn btn-secondary' : 'btn btn-primary btn-lg w-100 w-md-auto'"
         >
           {{ product.is_joined ? '가입 완료' : '선택한 조건으로 가입하기' }}
         </button>
-        <p v-if="!selectedOptionId && !product.is_joined" class="text-muted mt-2 small">
-          * 기간을 선택해야 가입 버튼이 활성화됩니다.
+        <p v-if="(!selectedOptionId || !amount) && !product.is_joined" class="text-muted mt-2 small">
+          * 기간 선택과 금액 입력이 완료되어야 가입 버튼이 활성화됩니다.
         </p>
       </div>
       <div v-else class="alert alert-warning">
@@ -66,7 +82,8 @@ const store = useDepositStore()
 const accountStore = useAccountStore()
 
 const product = ref(null)
-const selectedOptionId = ref(null) // 사용자가 선택한 라디오 버튼 ID
+const selectedOptionId = ref(null)
+const amount = ref(null) // ✅ 3. 가입 금액 변수 추가
 const isLoggedIn = computed(() => accountStore.isLogin)
 
 onMounted(async () => {
@@ -74,7 +91,6 @@ onMounted(async () => {
   product.value = res.data
 })
 
-// 기간별 최고금리 옵션 필터링 로직 (기존 유지)
 const uniqueOptions = computed(() => {
   if (!product.value?.options) return []
   const bestByTerm = new Map()
@@ -94,7 +110,8 @@ const clickSubscribe = async () => {
     try {
       const payload = {
         product_id: product.value.id,
-        option_id: selectedOptionId.value // 선택된 옵션 ID 전송
+        option_id: selectedOptionId.value,
+        amount: amount.value // ✅ 4. payload에 가입 금액 데이터 포함
       }
       await store.subscribeDeposit(payload, accountStore.token)
       alert('가입이 성공적으로 완료되었습니다!')

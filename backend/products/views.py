@@ -148,12 +148,17 @@ def deposit_subscribe(request, product_id):
     if request.method == 'POST':
         # 프론트엔드에서 보낸 option_id 가져오기
         option_id = request.data.get('option_id')
+        amount = request.data.get('amount') # 👈 여기가 None이면 에러 발생
+
+        # 데이터 검증 (에러 방지용 가드)
+        if amount is None or amount == "":
+            return Response({"message": "가입 금액(amount)이 누락되었습니다."}, status=400)
         
         if not option_id:
             return Response({"message": "기간(옵션)을 선택해주세요."}, status=status.HTTP_400_BAD_REQUEST)
 
         # 1-1. 이미 해당 '상품'에 가입했는지 확인 (UniqueConstraint 기준)
-        if DepositSubscription.objects.filter(user=request.user, deposit_product=product).exists():
+        if DepositSubscription.objects.filter(user=request.user, product=product).exists():
             return Response({"message": "이미 가입한 예금 상품입니다."}, status=status.HTTP_400_BAD_REQUEST)
         
         # 1-2. 선택한 옵션 객체 가져오기
@@ -162,14 +167,15 @@ def deposit_subscribe(request, product_id):
         # 1-3. 가입 정보 저장 (선택한 옵션 포함)
         DepositSubscription.objects.create(
             user=request.user, 
-            deposit_product=product,
-            deposit_option=option  # 모델에 추가한 필드명과 일치해야 합니다
+            product=product,
+            deposit_option=option,  # 모델에 추가한 필드명과 일치해야 합니다
+            amount=int(amount) # ✅ 가입 금액 저장
         )
         return Response({"message": "예금 상품 가입 완료"}, status=status.HTTP_201_CREATED)
 
     # 2. 특정 유저의 가입 여부 확인 (GET)
     elif request.method == 'GET':
-        subscription = DepositSubscription.objects.filter(user=request.user, deposit_product=product).first()
+        subscription = DepositSubscription.objects.filter(user=request.user, product=product).first()
         serializer = DepositSubscriptionSerializer(subscription)
         return Response(serializer.data)
 
@@ -181,24 +187,29 @@ def saving_subscribe(request, product_id):
 
     if request.method == 'POST':
         option_id = request.data.get('option_id')
-        
+        amount = request.data.get('amount') # 👈 여기가 None이면 에러 발생
+
+        # 데이터 검증 (에러 방지용 가드)
+        if amount is None or amount == "":
+            return Response({"message": "가입 금액(amount)이 누락되었습니다."}, status=400)
         if not option_id:
             return Response({"message": "기간(옵션)을 선택해주세요."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if SavingSubscription.objects.filter(user=request.user, saving_product=product).exists():
+        if SavingSubscription.objects.filter(user=request.user, product=product).exists():
             return Response({"message": "이미 가입한 적금 상품입니다."}, status=status.HTTP_400_BAD_REQUEST)
         
         option = get_object_or_404(SavingOptions, pk=option_id)
 
         SavingSubscription.objects.create(
             user=request.user, 
-            saving_product=product,
-            saving_option=option # 모델에 추가한 필드명과 일치해야 합니다
+            product=product,
+            saving_option=option, # 모델에 추가한 필드명과 일치해야 합니다
+            amount=int(amount) # ✅ 가입 금액 저장
         )
         return Response({"message": "적금 상품 가입 완료"}, status=status.HTTP_201_CREATED)
 
     elif request.method == 'GET':
-        subscription = SavingSubscription.objects.filter(user=request.user, saving_product=product).first()
+        subscription = SavingSubscription.objects.filter(user=request.user, product=product).first()
         serializer = SavingSubscriptionSerializer(subscription)
         return Response(serializer.data)
 

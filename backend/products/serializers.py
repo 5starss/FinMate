@@ -89,19 +89,25 @@ class DepositSubscriptionSerializer(serializers.ModelSerializer):
     # 가입한 옵션의 상세 정보 (기간, 기본금리, 최고금리)
     option_details = serializers.SerializerMethodField()
     # 상품 정보 (은행명, 상품명, 우대조건 텍스트)
-    product_name = serializers.CharField(source='deposit_product.fin_prdt_nm', read_only=True)
-    bank_name = serializers.CharField(source='deposit_product.kor_co_nm', read_only=True)
-    special_condition = serializers.CharField(source='deposit_product.spcl_cnd', read_only=True)
+    product_name = serializers.CharField(source='product.fin_prdt_nm', read_only=True)
+    bank_name = serializers.CharField(source='product.kor_co_nm', read_only=True)
+    special_condition = serializers.CharField(source='product.spcl_cnd', read_only=True)
 
     class Meta:
         model = DepositSubscription
         fields = [
-            'id', 'deposit_product', 'deposit_option', 
+            'id', 'product', 'deposit_option', 'amount',
             'bank_name', 'product_name', 'option_details', 
-            'special_condition', 'joined_at'
+            'special_condition'
         ]
-        read_only_fields = ['user']
-
+        read_only_fields = ['user', 'joined_at']
+    
+    # 금액이 0원 이하일 경우 에러 처리
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("가입 금액은 0원보다 커야 합니다.")
+        return value
+    
     def get_option_details(self, obj):
         option = obj.deposit_option
         if option:
@@ -116,19 +122,25 @@ class DepositSubscriptionSerializer(serializers.ModelSerializer):
 # 적금 가입 정보 Serializer
 class SavingSubscriptionSerializer(serializers.ModelSerializer):
     option_details = serializers.SerializerMethodField()
-    product_name = serializers.CharField(source='saving_product.fin_prdt_nm', read_only=True)
-    bank_name = serializers.CharField(source='saving_product.kor_co_nm', read_only=True)
-    special_condition = serializers.CharField(source='saving_product.spcl_cnd', read_only=True)
+    product_name = serializers.CharField(source='product.fin_prdt_nm', read_only=True)
+    bank_name = serializers.CharField(source='product.kor_co_nm', read_only=True)
+    special_condition = serializers.CharField(source='product.spcl_cnd', read_only=True)
 
     class Meta:
         model = SavingSubscription
         fields = [
-            'id', 'saving_product', 'saving_option', 
+            'id', 'product', 'saving_option', 'amount',
             'bank_name', 'product_name', 'option_details', 
-            'special_condition', 'joined_at'
+            'special_condition'
         ]
-        read_only_fields = ['user']
-
+        read_only_fields = ['user', 'joined_at']
+    
+    # 금액이 0원 이하일 경우 에러 처리
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("가입 금액은 0원보다 커야 합니다.")
+        return value
+    
     def get_option_details(self, obj):
         option = obj.saving_option
         if option:
