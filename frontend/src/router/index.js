@@ -11,6 +11,7 @@ import MapView from '@/views/MapView.vue'
 import ChartView from '@/views/ChartView.vue'
 import DepositDetailView from '@/views/DepositDetailView.vue'
 import SavingDetailView from '@/views/SavingDetailView.vue'
+import MyPageView from '@/views/MyPageView.vue' 
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -69,22 +70,34 @@ const router = createRouter({
       path: '/chart', 
       name: 'ChartView',
       component: ChartView
-    }
+    },
+    {
+      path: '/profile',
+      name: 'MyPageView',
+      component: MyPageView,
+    },
   ]
 })
 
 router.beforeEach((to, from) => {
   const accountStore = useAccountStore()
 
-  if (to.name === 'ArticleView' && !accountStore.isLogin) {
-    window.alert('로그인이 필요합니다.')
+  // 1. 로그인이 반드시 필요한 페이지들 관리
+  // MyPageView를 추가했습니다.
+  const authRequiredPages = ['MyPageView', 'DepositDetailView', 'SavingDetailView']
+  
+  if (authRequiredPages.includes(to.name) && !accountStore.isLogin) {
+    window.alert('로그인이 필요한 서비스입니다.')
     return { name: 'LogInView' }
   }
 
-  if ((to.name === 'SignUpView' || to.name === 'LogInView') && (accountStore.isLogin) ) {
+  // 2. 이미 로그인한 사용자가 로그인/회원가입 페이지에 접근할 때
+  // 기존 코드에서 ArticleView 대신 HomeView나 MyPageView로 보내는 것이 자연스럽습니다.
+  if ((to.name === 'SignUpView' || to.name === 'LogInView') && accountStore.isLogin) {
     window.alert('이미 로그인 되어 있습니다.')
-    return { name: 'ArticleView' }
+    return { name: 'HomeView' } // 혹은 MyPageView
   }
+  
 })
 
 export default router
