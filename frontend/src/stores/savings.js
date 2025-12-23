@@ -30,13 +30,19 @@ export const useSavingStore = defineStore('saving', () => {
     })
   }
   
-  const subscribeSaving = function (productId, token) {
-  return axios({
-    method: 'post',
-    url: `${API_URL}/products/savings/${productId}/subscribe/`,
-    headers: {
-      Authorization: `Token ${token}`
-    }
+  // ✅ 적금 가입 함수 수정
+  const subscribeSaving = function (payload, token) {
+    const { product_id, option_id } = payload // payload에서 상품ID와 옵션ID 추출
+    
+    return axios({
+      method: 'post',
+      url: `${API_URL}/products/savings/${product_id}/subscribe/`, // Django URL 설정에 따라 수정 가능
+      data: {
+        option_id: option_id // 서버의 request.data.get('option_id')로 전달됨
+      },
+      headers: {
+        Authorization: `Token ${token}`
+      }
   })
   }
 

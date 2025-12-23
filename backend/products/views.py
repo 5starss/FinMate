@@ -146,17 +146,33 @@ def deposit_subscribe(request, product_id):
 
     # 1. 가입하기 (POST)
     if request.method == 'POST':
+        # 프론트엔드에서 보낸 option_id 가져오기
+        option_id = request.data.get('option_id')
+        
+        if not option_id:
+            return Response({"message": "기간(옵션)을 선택해주세요."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1-1. 이미 해당 '상품'에 가입했는지 확인 (UniqueConstraint 기준)
         if DepositSubscription.objects.filter(user=request.user, deposit_product=product).exists():
             return Response({"message": "이미 가입한 예금 상품입니다."}, status=status.HTTP_400_BAD_REQUEST)
         
-        DepositSubscription.objects.create(user=request.user, deposit_product=product)
+        # 1-2. 선택한 옵션 객체 가져오기
+        option = get_object_or_404(DepositOptions, pk=option_id)
+
+        # 1-3. 가입 정보 저장 (선택한 옵션 포함)
+        DepositSubscription.objects.create(
+            user=request.user, 
+            deposit_product=product,
+            deposit_option=option  # 모델에 추가한 필드명과 일치해야 합니다
+        )
         return Response({"message": "예금 상품 가입 완료"}, status=status.HTTP_201_CREATED)
 
-    # 2. 특정 유저의 가입 여부 확인 등 (GET - 필요시)
+    # 2. 특정 유저의 가입 여부 확인 (GET)
     elif request.method == 'GET':
         subscription = DepositSubscription.objects.filter(user=request.user, deposit_product=product).first()
         serializer = DepositSubscriptionSerializer(subscription)
         return Response(serializer.data)
+
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -164,16 +180,29 @@ def saving_subscribe(request, product_id):
     product = get_object_or_404(SavingProducts, pk=product_id)
 
     if request.method == 'POST':
+        option_id = request.data.get('option_id')
+        
+        if not option_id:
+            return Response({"message": "기간(옵션)을 선택해주세요."}, status=status.HTTP_400_BAD_REQUEST)
+
         if SavingSubscription.objects.filter(user=request.user, saving_product=product).exists():
             return Response({"message": "이미 가입한 적금 상품입니다."}, status=status.HTTP_400_BAD_REQUEST)
         
-        SavingSubscription.objects.create(user=request.user, saving_product=product)
+        option = get_object_or_404(SavingOptions, pk=option_id)
+
+        SavingSubscription.objects.create(
+            user=request.user, 
+            saving_product=product,
+            saving_option=option # 모델에 추가한 필드명과 일치해야 합니다
+        )
         return Response({"message": "적금 상품 가입 완료"}, status=status.HTTP_201_CREATED)
 
     elif request.method == 'GET':
         subscription = SavingSubscription.objects.filter(user=request.user, saving_product=product).first()
         serializer = SavingSubscriptionSerializer(subscription)
         return Response(serializer.data)
+
+# user_all_subscriptions 뷰는 기존 로직을 그대로 유지해도 무방합니다. (Serializer가 데이터를 처리할 것이기 때문)
 
 # [추가] 유저 페이지에서 전체 가입 목록을 가져올 때 사용할 뷰
 @api_view(['GET'])

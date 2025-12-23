@@ -28,10 +28,15 @@ export const useDepositStore = defineStore('deposit', () => {
     })
   }
 
-  const subscribeDeposit = function (productId, token) {
+  const subscribeDeposit = function (payload, token) {
+  const { product_id, option_id } = payload
+  
   return axios({
     method: 'post',
-    url: `${API_URL}/products/deposits/${productId}/subscribe/`,
+    url: `${API_URL}/products/deposits/${product_id}/subscribe/`,
+    data: {
+      option_id: option_id
+    },
     headers: {
       Authorization: `Token ${token}`
     }

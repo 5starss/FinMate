@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import DepositOptions, DepositProducts, SavingOptions, SavingProducts, DepositSubscription, SavingSubscription
+from .models import (DepositOptions, DepositProducts, 
+                     SavingOptions, SavingProducts, 
+                     DepositSubscription, SavingSubscription
+                     )
 
 class DepositProductsSerializer(serializers.ModelSerializer):
     
@@ -83,41 +86,55 @@ class SavingProductDetailSerializer(serializers.ModelSerializer):
 
 # 예금 가입 정보 Serializer
 class DepositSubscriptionSerializer(serializers.ModelSerializer):
-    # 중첩 Serializer를 사용하여 연결된 상품 상세 정보를 가져옵니다.
-    # DepositProductSerializer는 이미 만드신 것을 사용하거나 아래처럼 정의하세요.
-    product_details = serializers.SerializerMethodField()
+    # 가입한 옵션의 상세 정보 (기간, 기본금리, 최고금리)
+    option_details = serializers.SerializerMethodField()
+    # 상품 정보 (은행명, 상품명, 우대조건 텍스트)
+    product_name = serializers.CharField(source='deposit_product.fin_prdt_nm', read_only=True)
+    bank_name = serializers.CharField(source='deposit_product.kor_co_nm', read_only=True)
+    special_condition = serializers.CharField(source='deposit_product.spcl_cnd', read_only=True)
 
     class Meta:
         model = DepositSubscription
-        fields = ['id', 'user', 'deposit_product', 'created_at', 'product_details']
+        fields = [
+            'id', 'deposit_product', 'deposit_option', 
+            'bank_name', 'product_name', 'option_details', 
+            'special_condition', 'joined_at'
+        ]
         read_only_fields = ['user']
 
-    def get_product_details(self, obj):
-        # 가입된 예금 상품의 상세 정보를 반환
-        product = obj.deposit_product
-        return {
-            "fin_prdt_nm": product.fin_prdt_nm,
-            "kor_co_nm": product.kor_co_nm,
-            # 모델에 정의된 금리나 기간 필드명을 사용하세요
-            "intr_rate": getattr(product, 'intr_rate', None), 
-            "save_trm": getattr(product, 'save_trm', None),
-        }
+    def get_option_details(self, obj):
+        option = obj.deposit_option
+        if option:
+            return {
+                "save_trm": option.save_trm,      # 저축 기간
+                "intr_rate": option.intr_rate,    # 기본 저축 금리
+                "intr_rate2": option.intr_rate2,  # 최고 우대 금리
+            }
+        return None
+
 
 # 적금 가입 정보 Serializer
 class SavingSubscriptionSerializer(serializers.ModelSerializer):
-    product_details = serializers.SerializerMethodField()
+    option_details = serializers.SerializerMethodField()
+    product_name = serializers.CharField(source='saving_product.fin_prdt_nm', read_only=True)
+    bank_name = serializers.CharField(source='saving_product.kor_co_nm', read_only=True)
+    special_condition = serializers.CharField(source='saving_product.spcl_cnd', read_only=True)
 
     class Meta:
         model = SavingSubscription
-        fields = ['id', 'user', 'saving_product', 'created_at', 'product_details']
+        fields = [
+            'id', 'saving_product', 'saving_option', 
+            'bank_name', 'product_name', 'option_details', 
+            'special_condition', 'joined_at'
+        ]
         read_only_fields = ['user']
 
-    def get_product_details(self, obj):
-        product = obj.saving_product
-        return {
-            "fin_prdt_nm": product.fin_prdt_nm,
-            "kor_co_nm": product.kor_co_nm,
-            # 모델에 정의된 금리나 기간 필드명을 사용해야함.
-            "intr_rate": getattr(product, 'intr_rate', None),
-            "save_trm": getattr(product, 'save_trm', None),
-        }
+    def get_option_details(self, obj):
+        option = obj.saving_option
+        if option:
+            return {
+                "save_trm": option.save_trm,      # 저축 기간
+                "intr_rate": option.intr_rate,    # 기본 저축 금리
+                "intr_rate2": option.intr_rate2,  # 최고 우대 금리
+            }
+        return None
