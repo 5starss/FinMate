@@ -1,40 +1,38 @@
 <template>
-  <HeaderNavbar />
-
   <div class="app-container">
-    <RouterView />
+    <HeaderNavbar />
+
+    <div class="content-wrapper">
+      <RouterView />
+    </div>
+
+    <FooterSection />
   </div>
 </template>
 
 <script setup>
-import { RouterView, RouterLink } from 'vue-router'
-import { useAccountStore } from '@/stores/accounts'
+import { RouterView } from 'vue-router'
 import HeaderNavbar from '@/components/HeaderNavbar.vue'
-
-  const accountStore = useAccountStore()
-  const logOut = function () {
-    accountStore.logOut()
-  }
+import FooterSection from '@/components/FooterSection.vue' 
 </script>
 
 <style>
-body {
+/* 전역 스타일 (이미 적용되어 있다면 그대로 두세요) */
+body, html {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
+  height: 100%;
 }
+
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh; /* 화면 전체 높이 사용 */
+  min-height: 100vh; /* 화면 꽉 채우기 */
 }
 
-/* 헤더 밑에 들어가는 콘텐츠 영역 */
 .content-wrapper {
-  flex: 1; /* 남은 공간을 모두 차지함 (핵심!) */
+  flex: 1; /* 남은 공간 모두 차지 */
   display: flex;
   flex-direction: column;
 }
-
 </style>
-
