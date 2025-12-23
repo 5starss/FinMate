@@ -1,6 +1,6 @@
 <template>
   <div class="container mt-5">
-    <div class="card shadow-sm border-0 mb-5">
+    <div class="card shadow-sm border-0 mb-4">
       <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
         <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2 text-primary"></i>내 프로필</h4>
         <div v-if="!isEditing">
@@ -21,7 +21,7 @@
               <i class="bi bi-person-fill text-secondary" style="font-size: 3rem;"></i>
             </div>
             <h5 class="fw-bold mb-1">{{ userInfo.username }}</h5>
-            <p class="text-muted small">{{ userInfo.email }}</p>
+            <p class="text-muted small mb-0">{{ userInfo.email }}</p>
           </div>
 
           <div class="col-md-8 ps-md-5">
@@ -59,6 +59,59 @@
       </div>
     </div>
 
+    <div class="row g-3 mb-5">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm bg-primary text-white overflow-hidden">
+          <div class="card-body p-4 position-relative">
+            <div class="position-relative z-1">
+              <h6 class="text-white-50 fw-bold mb-1">나의 총 자산 현황</h6>
+              <h1 class="display-5 fw-bold mb-0">{{ formatIncome(totalAssets) }}</h1>
+            </div>
+            <i class="bi bi-wallet2 position-absolute end-0 bottom-0 text-white-50 m-3" style="font-size: 5rem; opacity: 0.2;"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="p-2 bg-info-subtle text-info rounded-3 me-2">
+                <i class="bi bi-cash-coin"></i>
+              </div>
+              <span class="text-muted small fw-bold">현금 (가계부 잔액)</span>
+            </div>
+            <h4 class="fw-bold mb-0 text-dark">{{ formatIncome(cashBalance) }}</h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="p-2 bg-success-subtle text-success rounded-3 me-2">
+                <i class="bi bi-piggy-bank"></i>
+              </div>
+              <span class="text-muted small fw-bold">총 예금액</span>
+            </div>
+            <h4 class="fw-bold mb-0 text-dark">{{ formatIncome(totalDepositAmount) }}</h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="p-2 bg-warning-subtle text-warning rounded-3 me-2">
+                <i class="bi bi-graph-up-arrow"></i>
+              </div>
+              <span class="text-muted small fw-bold">총 적금액</span>
+            </div>
+            <h4 class="fw-bold mb-0 text-dark">{{ formatIncome(totalSavingAmount) }}</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <section class="mt-4 pb-5">
       <h5 class="fw-bold mb-3">가입 중인 상품 <span class="badge bg-primary ms-1">{{ totalCount }}</span></h5>
       <div class="row g-3">
@@ -80,7 +133,6 @@
             </div>
           </div>
         </div>
-
         <div v-for="sub in subscriptions.savings" :key="'s-'+sub.id" 
              @click="openModal(sub, 'saving')" class="col-md-6">
           <div class="card border-0 shadow-sm h-100 hover-card border-start border-success border-4">
@@ -156,8 +208,11 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useAccountStore } from '@/stores/accounts'
+import { useLedgerStore } from '@/stores/ledgers'
 
+const ledgerStore = useLedgerStore()
 const accountStore = useAccountStore()
+
 const userInfo = ref(null)
 const isEditing = ref(false)
 const editData = ref(null)
@@ -181,16 +236,39 @@ const fetchSubscriptions = async () => {
     const res = await axios.get(`${API_URL}/products/user-subscriptions/`, {
       headers: { Authorization: `Token ${accountStore.token}` }
     })
-    // 백엔드에서 준 데이터를 그대로 할당
-    // res.data 안에 deposits, savings가 이미 들어있으므로 정상 작동하게 됩니다.
     subscriptions.value = res.data
-    console.log('가입 정보:', res.data)
-  } catch (err) { 
-    console.error(err) 
-  }
+  } catch (err) { console.error(err) }
 }
 
-// --- 프로필 수정 관련 ---
+// --- 자산 계산 로직 (신규) ---
+
+// 1. 현금 잔액 (가계부 수입 - 지출)
+const cashBalance = computed(() => {
+  const income = ledgerStore.transactions
+    .filter(t => t.category_type === 'INCOME')
+    .reduce((acc, cur) => acc + cur.amount, 0)
+  const expense = ledgerStore.transactions
+    .filter(t => t.category_type === 'EXPENSE')
+    .reduce((acc, cur) => acc + cur.amount, 0)
+  return income - expense
+})
+
+// 2. 총 예금액
+const totalDepositAmount = computed(() => {
+  return (subscriptions.value.deposits || []).reduce((acc, cur) => acc + (cur.amount || 0), 0)
+})
+
+// 3. 총 적금액
+const totalSavingAmount = computed(() => {
+  return (subscriptions.value.savings || []).reduce((acc, cur) => acc + (cur.amount || 0), 0)
+})
+
+// 4. 합산 총 자산
+const totalAssets = computed(() => {
+  return cashBalance.value + totalDepositAmount.value + totalSavingAmount.value
+})
+
+// --- 프로필 수정/해지/유틸 로직 (기존 유지) ---
 const toggleEdit = () => {
   if (isEditing.value) editData.value = JSON.parse(JSON.stringify(userInfo.value))
   isEditing.value = !isEditing.value
@@ -207,7 +285,6 @@ const saveProfile = async () => {
   } catch (err) { alert('수정 실패') }
 }
 
-// --- 모달 & 해지 관련 ---
 const openModal = (product, type) => { selectedProduct.value = { ...product, type } }
 const closeModal = () => { selectedProduct.value = null }
 
@@ -225,33 +302,34 @@ const confirmUnsubscribe = async () => {
   }
 }
 
-// --- 유틸리티 ---
-  const totalCount = computed(() => {
-  return subscriptions.value.total_count ?? 
-         ((subscriptions.value.deposits?.length || 0) + (subscriptions.value.savings?.length || 0))
+const totalCount = computed(() => {
+  return (subscriptions.value.deposits?.length || 0) + (subscriptions.value.savings?.length || 0)
 })
-  const genderDisplay = computed(() => {
+
+const genderDisplay = computed(() => {
   const g = userInfo.value?.profile?.gender
   return g === 'M' ? '남성' : g === 'F' ? '여성' : '미설정'
 })
-const formatIncome = (income) => {
-  if (!income) return '0원'
-  return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(income)
+
+const formatIncome = (value) => {
+  return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(value || 0)
 }
 
 onMounted(() => {
   fetchProfile()
   fetchSubscriptions()
+  ledgerStore.getTransactions() // 가계부 데이터도 로드
 })
 </script>
 
 <style scoped>
+/* 기존 스타일 유지 + 보강 */
 .hover-card { transition: all 0.2s ease; cursor: pointer; }
 .hover-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
 .icon-box { width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
 .border-dashed { border: 2px dashed #dee2e6; }
+.z-1 { z-index: 1; }
 
-/* 모달 스타일 */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 2000;
