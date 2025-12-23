@@ -25,20 +25,19 @@
       </section>
 
       <aside class="login-widget">
-        <div v-if="!isLogin" class="card-content login-mode">
+        <div v-if="!store.isLogin" class="card-content login-mode">
           <div class="avatar-circle">👤</div>
           <p class="login-msg">
             로그인 후<br>
             <strong>나만의 맞춤 정보</strong>를 이용하세요.
           </p>
           <button class="primary-btn" @click="router.push('/login')">로그인</button>
-          <div class="sub-links">
-            <span>아이디 찾기</span> | <span>비밀번호 찾기</span>
-          </div>
         </div>
 
         <div v-else class="card-content user-mode">
-          <p><strong>홍길동</strong>님 환영합니다! 👋</p>
+          <p>
+            <span class="username">{{ store.username }}</span>님 환영합니다
+          </p>
           <button class="primary-btn outline">마이페이지</button>
         </div>
       </aside>
@@ -67,6 +66,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAccountStore } from '@/stores/accounts'
+
+const store = useAccountStore()
 
 const router = useRouter()
 // 나중에 Pinia 등에서 로그인 상태를 가져올 변수 (일단 false로 가정)
@@ -223,14 +225,9 @@ const goSearch = () => {
   border: 1px solid #2F65F6;
 }
 
-.sub-links {
-  margin-top: 15px;
-  font-size: 13px;
-  color: #999;
-}
-
-.sub-links span {
-  cursor: pointer;
+.username {
+  font-weight: 700;
+  color: #333;
 }
 
 /* 2. 하단 검색 섹션 */
