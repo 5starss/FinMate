@@ -61,7 +61,7 @@ def deposit_list(request):
         )
     elif request.method == 'GET':
         deposit = get_list_or_404(DepositProducts)
-        serializer = DepositProductsSerializer(deposit, many=True)
+        serializer = DepositProductDetailSerializer(deposit, many=True)
         return Response(serializer.data)
 
 
@@ -114,7 +114,7 @@ def saving_list(request):
         )
     elif request.method == 'GET':
         saving = get_list_or_404(SavingProducts)
-        serializer = SavingProductsSerializer(saving, many=True)
+        serializer = SavingProductDetailSerializer(saving, many=True)
         return Response(serializer.data)
 
 @api_view(['GET'])
