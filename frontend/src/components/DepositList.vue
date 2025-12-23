@@ -3,7 +3,7 @@
     <h3>예금 목록</h3>
     <ul>
       <li v-for="deposit in deposits" :key="deposit.id">
-        <router-link :to="`/deposit/${deposit.id}`">
+        <router-link :to="`/deposits/${deposit.id}`">
           {{ deposit.kor_co_nm }} - {{ deposit.fin_prdt_nm }}
         </router-link>
       </li>

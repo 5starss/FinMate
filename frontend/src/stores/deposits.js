@@ -9,7 +9,7 @@ export const useDepositStore = defineStore('deposit', () => {
   const getDeposits = function () {
     return axios({
       method: 'get',
-      url: `${API_URL}/products/deposit/`,
+      url: `${API_URL}/products/deposit-list/`,
     })
       .then(res => {
         deposits.value = res.data
@@ -24,9 +24,19 @@ export const useDepositStore = defineStore('deposit', () => {
   const getDepositDetail = function (id) {
     return axios({
       method: 'get',
-      url: `${API_URL}/products/api/deposits/${id}/`,
+      url: `${API_URL}/products/deposits/${id}/`,
     })
   }
 
-  return { deposits, getDeposits, getDepositDetail, API_URL }
+  const subscribeDeposit = function (productId, token) {
+  return axios({
+    method: 'post',
+    url: `${API_URL}/products/deposits/${productId}/subscribe/`,
+    headers: {
+      Authorization: `Token ${token}`
+    }
+  })
+}
+
+  return { deposits, getDeposits, getDepositDetail, subscribeDeposit, API_URL }
 }, { persist: true })

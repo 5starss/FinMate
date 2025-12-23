@@ -2,13 +2,18 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('deposit/', views.deposit_list),  # 리스트 조회 기능 유지
-    path('saving/', views.saving_list),  # 리스트 조회 기능 유지
+    # 1. 전체 상품 리스트 및 API 데이터 저장
+    path('deposit-list/', views.deposit_list, name='deposit_list'),
+    path('saving-list/', views.saving_list, name='saving_list'),
 
-    # 상세 조회 및 구독 관련 API 경로 수정
+    # 2. 개별 상품 상세 조회 (views.py 인자: pk)
     path('deposits/<int:pk>/', views.deposit_detail, name='deposit_detail'),
-    path('deposits/<int:pk>/subscribe/', views.deposit_subscribe, name='deposit_subscribe'),
-    
     path('savings/<int:pk>/', views.saving_detail, name='saving_detail'),
-    path('savings/<int:pk>/subscribe/', views.saving_subscribe, name='saving_subscribe'),
+
+    # 3. 상품 가입하기 및 확인 (views.py 인자: product_id)
+    path('deposits/<int:product_id>/subscribe/', views.deposit_subscribe, name='deposit_subscribe'),
+    path('savings/<int:product_id>/subscribe/', views.saving_subscribe, name='saving_subscribe'),
+
+    # 4. 유저 페이지용 전체 가입 목록
+    path('user-subscriptions/', views.user_all_subscriptions, name='user_all_subscriptions'),
 ]

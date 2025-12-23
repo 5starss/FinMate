@@ -9,6 +9,8 @@ import SearchView from '@/views/SearchView.vue'
 import VideoDetail from '@/views/VideoDetail.vue'
 import MapView from '@/views/MapView.vue'
 import ChartView from '@/views/ChartView.vue'
+import DepositDetailView from '@/views/DepositDetailView.vue'
+import SavingDetailView from '@/views/SavingDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -29,14 +31,14 @@ const router = createRouter({
       component: SavingView,
     },
     {
-      path: '/deposit/:id',
+      path: '/deposits/:id',
       name: 'DepositDetailView',
-      component: () => import('@/views/DepositDetailView.vue'),
+      component: DepositDetailView
     },
     {
-      path: '/saving/:id',
+      path: '/savings/:id', // ✅ URL 설계와 일치하도록
       name: 'SavingDetailView',
-      component: () => import('@/views/SavingDetailView.vue'),
+      component: SavingDetailView
     },
     {
       path: '/signup',

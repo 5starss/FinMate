@@ -6,7 +6,7 @@
         v-for="saving in savings" 
         :key="saving.id"
       >
-        <router-link :to="`/saving/${saving.id}`">
+        <router-link :to="`/savings/${saving.id}`">
           {{ saving.kor_co_nm }} - {{ saving.fin_prdt_nm }}
         </router-link>
       </li>

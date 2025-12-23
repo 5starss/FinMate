@@ -1,22 +1,44 @@
 <template>
-  <div>
-    <div v-if="loading">로딩중...</div>
-    <div v-else-if="error">에러: {{ error }}</div>
+  <div v-if="product" class="container mt-4">
+    <h1>{{ product.kor_co_nm }} - {{ product.fin_prdt_nm }} (적금)</h1>
 
-    <div v-else-if="product">
-      <h1>{{ product.kor_co_nm }} - {{ product.fin_prdt_nm }}</h1>
+    <div class="my-3">
+      <div v-if="isLoggedIn">
+        <button 
+          @click="clickSubscribe" 
+          :disabled="product.is_joined"
+          :class="product.is_joined ? 'btn btn-secondary' : 'btn btn-success'"
+        >
+          {{ product.is_joined ? '이미 가입된 상품입니다' : '적금 가입하기' }}
+        </button>
+      </div>
+      <div v-else class="alert alert-light border">
+        가입하시려면 <router-link :to="{ name: 'LogInView' }">로그인</router-link>이 필요합니다.
+      </div>
+    </div>
 
-      <h3>금리 옵션</h3>
-      <ul>
-        <!-- ✅ 중복 제거된 옵션 출력 -->
+    <hr>
+    
+    <h3>금리 정보</h3>
+    <div class="card p-3 mb-4 bg-light">
+      <ul class="mb-0">
         <li v-for="opt in uniqueOptions" :key="opt.id">
-          {{ opt.save_trm }}개월 /
-          {{ opt.intr_rate }}% ~ {{ opt.intr_rate2 }}%
+          <strong>{{ opt.save_trm }}개월</strong> 저축 시: 
+          <span class="text-primary">{{ opt.intr_rate }}%</span> ~ 
+          <span class="text-danger">{{ opt.intr_rate2 }}% (최고)</span>
         </li>
       </ul>
     </div>
 
-    <div v-else>데이터가 없습니다.</div>
+    <div class="mt-4">
+      <h5>상세 정보</h5>
+      <p><strong>가입 방법:</strong> {{ product.join_way }}</p>
+      <p><strong>우대 조건:</strong> {{ product.spcl_cnd }}</p>
+      <p><strong>기타 메모:</strong> {{ product.etc_note }}</p>
+    </div>
+  </div>
+  <div v-else class="text-center mt-5">
+    <p>적금 정보를 불러오고 있습니다...</p>
   </div>
 </template>
 
@@ -24,32 +46,27 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSavingStore } from '@/stores/savings'
+import { useAccountStore } from '@/stores/accounts'
 
 const route = useRoute()
 const store = useSavingStore()
+const accountStore = useAccountStore()
 
 const product = ref(null)
-const loading = ref(false)
-const error = ref('')
+const isLoggedIn = computed(() => accountStore.isLogin)
 
 onMounted(async () => {
-  loading.value = true
-  error.value = ''
   try {
     const res = await store.getSavingDetail(route.params.id)
+    product.data = res.data // 여기서 product.value가 아니라 res.data 자체를 할당
     product.value = res.data
-  } catch (e) {
-    console.error(e)
-    error.value = e?.message || 'API 호출 실패'
-  } finally {
-    loading.value = false
+  } catch (err) {
+    console.error('적금 상세 조회 실패:', err)
   }
 })
 
 /**
- * ✅ 같은 save_trm(개월) 옵션이 여러 개면,
- * intr_rate2(최고금리)가 가장 큰 것만 남김
- * 그리고 save_trm 오름차순으로 정렬
+ * ✅ 기존 로직: 같은 개월수 중 최고금리가 가장 높은 옵션만 추출
  */
 const uniqueOptions = computed(() => {
   if (!product.value?.options) return []
@@ -67,4 +84,27 @@ const uniqueOptions = computed(() => {
 
   return [...bestByTerm.values()].sort((a, b) => Number(a.save_trm) - Number(b.save_trm))
 })
+
+/**
+ * ✅ 가입하기 함수
+ */
+const clickSubscribe = async () => {
+  if (confirm(`[${product.value.fin_prdt_nm}] 적금에 가입하시겠습니까?`)) {
+    try {
+      // 스토어에 구현된 subscribeSaving 호출
+      await store.subscribeSaving(product.value.id, accountStore.token)
+      alert('적금 가입이 성공적으로 완료되었습니다!')
+      product.value.is_joined = true // 버튼 상태 즉시 업데이트
+    } catch (err) {
+      alert(err.response?.data?.message || '가입 중 오류가 발생했습니다.')
+    }
+  }
+}
 </script>
+
+<style scoped>
+.container { max-width: 900px; }
+.btn-success { background-color: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+.btn-secondary { background-color: #6c757d; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: not-allowed; }
+.text-danger { font-weight: bold; }
+</style>
