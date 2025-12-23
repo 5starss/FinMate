@@ -12,6 +12,8 @@ import ChartView from '@/views/ChartView.vue'
 import DepositDetailView from '@/views/DepositDetailView.vue'
 import SavingDetailView from '@/views/SavingDetailView.vue'
 import MyPageView from '@/views/MyPageView.vue' 
+import LedgerView from '@/views/LedgerView.vue' 
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -75,6 +77,11 @@ const router = createRouter({
       path: '/profile',
       name: 'MyPageView',
       component: MyPageView,
+    },
+    {
+      path: '/ledger',
+      name: 'LedgerView',
+      component: LedgerView
     },
   ]
 })
