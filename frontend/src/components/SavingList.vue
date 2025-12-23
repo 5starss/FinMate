@@ -1,142 +1,127 @@
 <template>
   <div class="product-list">
-    <div v-if="savings.length === 0" class="no-data">
+    <div v-if="sortedSavings.length === 0" class="no-data">
       조건에 맞는 상품이 없습니다.
     </div>
 
-    <ul v-else class="list-wrapper">
-      <li v-for="saving in savings" :key="saving.id" class="product-item">
-        <router-link :to="`/savings/${saving.id}`" class="product-link">
-          
-          <div class="bank-info">
-            <div class="bank-icon saving-icon">💰</div> <span class="bank-name">{{ saving.kor_co_nm }}</span>
-          </div>
-
-          <div class="product-info">
-            <h3 class="product-name">{{ saving.fin_prdt_nm }}</h3>
-          </div>
-
-          <div class="arrow-icon">
-            ➜
-          </div>
-        </router-link>
-      </li>
-    </ul>
+    <div v-else class="table-container">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th class="fixed-col">공시 일자</th>
+            <th class="fixed-col">금융회사</th>
+            <th class="wide-col">상품명</th>
+            
+            <th @click="toggleSort(6)" class="sortable">
+              6개월 <span class="sort-icon">{{ getSortIcon(6) }}</span>
+            </th>
+            <th @click="toggleSort(12)" class="sortable">
+              12개월 <span class="sort-icon">{{ getSortIcon(12) }}</span>
+            </th>
+            <th @click="toggleSort(24)" class="sortable">
+              24개월 <span class="sort-icon">{{ getSortIcon(24) }}</span>
+            </th>
+            <th @click="toggleSort(36)" class="sortable">
+              36개월 <span class="sort-icon">{{ getSortIcon(36) }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr 
+            v-for="saving in sortedSavings" 
+            :key="saving.id" 
+            @click="goDetail(saving.id)"
+            class="clickable-row"
+          >
+            <td>{{ saving.dcls_month || '-' }}</td>
+            <td class="bank-name">{{ saving.kor_co_nm }}</td>
+            <td class="product-name">{{ saving.fin_prdt_nm }}</td>
+            
+            <td class="rate">{{ getInterestRate(saving.options, 6) }}</td>
+            <td class="rate">{{ getInterestRate(saving.options, 12) }}</td>
+            <td class="rate">{{ getInterestRate(saving.options, 24) }}</td>
+            <td class="rate">{{ getInterestRate(saving.options, 36) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const props = defineProps({
   savings: {
     type: Array,
     required: true
   }
 })
+
+const router = useRouter()
+const sortKey = ref(null)
+const sortOrder = ref('desc')
+
+const goDetail = (id) => {
+  router.push(`/savings/${id}`)
+}
+
+const getInterestRate = (options, term) => {
+  if (!options) return '-'
+  const option = options.find(opt => opt.save_trm == term)
+  return option ? `${option.intr_rate2}%` : '-'
+}
+
+const getRateValue = (options, term) => {
+  if (!options) return -1
+  const option = options.find(opt => opt.save_trm == term)
+  return option ? Number(option.intr_rate2) : -1
+}
+
+// [핵심] 정렬된 리스트
+const sortedSavings = computed(() => {
+  if (!sortKey.value) return props.savings
+  return [...props.savings].sort((a, b) => {
+    const rateA = getRateValue(a.options, sortKey.value)
+    const rateB = getRateValue(b.options, sortKey.value)
+    if (rateA === rateB) return 0
+    return sortOrder.value === 'desc' ? rateB - rateA : rateA - rateB
+  })
+})
+
+const toggleSort = (key) => {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc'
+  } else {
+    sortKey.value = key
+    sortOrder.value = 'desc'
+  }
+}
+
+const getSortIcon = (key) => {
+  if (sortKey.value !== key) return '↕'
+  return sortOrder.value === 'desc' ? '▼' : '▲'
+}
 </script>
 
 <style scoped>
-/* DepositList와 스타일 동일 (아이콘 색상만 다르게 처리 가능) */
-.list-wrapper {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
+/* 기존 적금 스타일 유지 */
+.table-container { overflow-x: auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); background: white; }
+.compare-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 
-.product-item {
-  background-color: white;
-  border-radius: 12px;
-  border: 1px solid #eee;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  transition: all 0.2s ease;
-}
+/* 헤더 */
+.compare-table th { background-color: #e8f5e9; color: #333; font-weight: 700; padding: 15px 10px; font-size: 14px; white-space: nowrap; }
+.compare-table th.sortable { cursor: pointer; user-select: none; }
+.compare-table th.sortable:hover { background-color: #dceddf; } /* 적금 헤더 호버 */
+.sort-icon { font-size: 12px; margin-left: 4px; color: #666; }
 
-.product-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(47, 101, 246, 0.15);
-  border-color: #2F65F6;
-}
-
-.product-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 25px;
-  text-decoration: none;
-  color: inherit;
-  width: 100%;
-}
-
-.bank-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 30%;
-}
-
-.bank-icon {
-  width: 40px;
-  height: 40px;
-  background-color: #f0f4ff;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 20px;
-}
-
-/* 적금 아이콘 배경색 살짝 다르게 */
-.bank-icon.saving-icon {
-  background-color: #e8f5e9; 
-}
-
-.bank-name {
-  font-size: 14px;
-  color: #666;
-  font-weight: 600;
-}
-
-.product-info {
-  flex-grow: 1;
-}
-
-.product-name {
-  font-size: 17px;
-  font-weight: 700;
-  color: #333;
-  margin: 0;
-}
-
-.arrow-icon {
-  color: #ccc;
-  font-size: 18px;
-  transition: color 0.2s;
-}
-
-.product-item:hover .arrow-icon {
-  color: #2F65F6;
-}
-
-.no-data {
-  text-align: center;
-  padding: 50px;
-  color: #888;
-  font-size: 16px;
-}
-
-@media (max-width: 600px) {
-  .product-link {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .bank-info {
-    width: 100%;
-  }
-  .arrow-icon {
-    display: none;
-  }
-}
+/* 본문 */
+.compare-table td { padding: 15px 10px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; color: #555; transition: background-color 0.2s; }
+.clickable-row { cursor: pointer; }
+.clickable-row:hover td { background-color: #fafffc; } /* 적금 호버 */
+.bank-name { font-weight: 600; color: #333; }
+.product-name { text-align: center; font-weight: 700; color: #198754; }
+.rate { font-family: 'Roboto', sans-serif; font-weight: 600; color: #333; }
+.no-data { text-align: center; padding: 50px; color: #888; }
 </style>

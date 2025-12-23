@@ -49,9 +49,11 @@ const filteredDeposits = computed(() => {
 </script>
 
 <style scoped>
+/* [수정] 전체 컨테이너 너비 확장 */
 .view-container {
-  max-width: 1000px;
-  margin: 40px auto;
+  max-width: 1200px; /* 기존 1000px -> 1200px로 확장 */
+  width: 100%;
+  margin: 50px auto; /* 상단 여백 조금 더 줌 */
   padding: 0 20px;
   min-height: 600px;
 }
@@ -60,13 +62,13 @@ const filteredDeposits = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 30px;
-  border-bottom: 2px solid #2F65F6; /* 브랜드 컬러 밑줄 */
+  margin-bottom: 40px; /* 간격 넓힘 */
+  border-bottom: 2px solid #2F65F6;
   padding-bottom: 20px;
 }
 
 .page-title {
-  font-size: 28px;
+  font-size: 30px; /* 제목 크기 확대 */
   font-weight: 800;
   color: #333;
   margin: 0;
@@ -76,31 +78,32 @@ const filteredDeposits = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
 }
 
 .filter-wrapper label {
-  font-size: 13px;
-  color: #666;
-  font-weight: 600;
+  font-size: 14px;
+  color: #555;
+  font-weight: 700;
 }
 
 .custom-select {
-  padding: 10px 30px 10px 15px;
-  font-size: 14px;
+  padding: 12px 35px 12px 15px; /* 패딩 넉넉하게 */
+  font-size: 15px;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 10px;
   outline: none;
   background-color: white;
   cursor: pointer;
   appearance: none;
-  min-width: 180px;
+  min-width: 200px; /* 선택박스 너비도 살짝 키움 */
   
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
-  background-position: right 10px center;
+  background-position: right 12px center;
   background-size: 16px;
   transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.03);
 }
 
 .custom-select:hover, .custom-select:focus {
