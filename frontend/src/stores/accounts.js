@@ -67,7 +67,7 @@ export const useAccountStore = defineStore('account', () => {
       .then(res => {
         token.value = null
         myname.value = null
-        router.push({ name: 'LogInView' })
+        router.push({ name: 'HomeView' })
       })
       .catch(err => console.log(err))
   }
