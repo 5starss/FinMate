@@ -1,7 +1,7 @@
 <template>
   <div class="home-container">
     
-    <div class="top-section">
+    <div class="top-section animate-fade-in">
       
       <section class="hero-box">
         <div class="hero-content">
@@ -15,49 +15,106 @@
             FinMate가 분석해서 추천해 드립니다.
           </p>
           <div class="hero-buttons">
-            <button class="cta-btn" @click="router.push('/deposit')">예금 비교하기 ></button>
-            <button class="cta-btn secondary" @click="router.push('/saving')">적금 비교하기 ></button>
+            <button class="cta-btn" @click="router.push({ name: 'DepositView' })">예금 비교하기 &rarr;</button>
+            <button class="cta-btn secondary" @click="router.push({ name: 'SavingView' })">적금 비교하기 &rarr;</button>
           </div>
         </div>
         <div class="hero-image">
-          💰🏦
+          <div class="floating-icon">💰</div>
         </div>
       </section>
 
       <aside class="login-widget">
-        <div v-if="!isLogin" class="card-content login-mode">
-          <div class="avatar-circle">👤</div>
+        <div v-if="!store.isLogin" class="card-content login-mode">
+          <div class="avatar-circle">🔒</div>
           <p class="login-msg">
-            로그인 후<br>
-            <strong>나만의 맞춤 정보</strong>를 이용하세요.
+            로그인하고<br>
+            <strong>나만의 맞춤 금리</strong>를 확인하세요.
           </p>
-          <button class="primary-btn" @click="router.push('/login')">로그인</button>
-          <div class="sub-links">
-            <span>아이디 찾기</span> | <span>비밀번호 찾기</span>
+          <button class="primary-btn" @click="router.push({ name: 'LogInView' })">로그인하기</button>
+          <div class="login-links">
+            <span @click="router.push({ name: 'SignUpView' })">회원가입</span>
+            <span class="divider">|</span>
+            <span>ID/PW 찾기</span>
           </div>
         </div>
 
         <div v-else class="card-content user-mode">
-          <p><strong>홍길동</strong>님 환영합니다! 👋</p>
-          <button class="primary-btn outline">마이페이지</button>
+          <div class="user-profile">
+            <div class="avatar-circle active">👤</div>
+            <p class="welcome-text">
+              <span class="username">{{ store.username }}</span>님,<br>
+              부자 되세요! 💸
+            </p>
+          </div>
+          <div class="my-menu">
+            <button class="menu-btn">찜한 상품</button>
+            <button class="menu-btn">내가 쓴 글</button>
+          </div>
+          <button class="primary-btn outline" @click="store.logOut()">로그아웃</button>
         </div>
       </aside>
     </div>
 
-    <section class="search-section">
-      <div class="search-box">
-        <input 
-          type="text" 
-          v-model="searchQuery" 
-          @keyup.enter="goSearch"
-          placeholder="은행명, 상품명을 검색해보세요 (예: 신한은행)" 
-        />
-        <button class="search-icon-btn" @click="goSearch">🔍</button>
+    <section class="quick-menu-section animate-slide-up">
+      <h3 class="section-title">자주 찾는 서비스</h3>
+      <div class="quick-icons">
+        <div class="icon-item" @click="router.push({ name: 'MapView' })">
+          <div class="icon-circle map-bg">🗺️</div>
+          <span>은행 찾기</span>
+        </div>
+        <div class="icon-item" @click="router.push({ name: 'ChartView' })">
+          <div class="icon-circle chart-bg">📈</div>
+          <span>금/은 시세</span>
+        </div>
+        <div class="icon-item" @click="router.push({ name: 'DepositView' })">
+          <div class="icon-circle deposit-bg">🏦</div>
+          <span>예금 상품</span>
+        </div>
+        <div class="icon-item" @click="router.push('/')">
+          <div class="icon-circle board-bg">💬</div>
+          <span>커뮤니티</span>
+        </div>
       </div>
-      <div class="hashtags">
-        <span>#최고금리</span>
-        <span>#청년도약계좌</span>
-        <span>#특판상품</span>
+    </section>
+
+    <section class="feature-section animate-slide-up delay-1">
+      <div class="feature-card chart-card" @click="router.push({ name: 'ChartView' })">
+        <div class="text-area">
+          <span class="tag">투자 정보</span>
+          <h3>오늘의 금값은?</h3>
+          <p>실시간 국제 시세를 차트로 확인하세요.</p>
+        </div>
+        <div class="visual-area">📊</div>
+      </div>
+      
+      <div class="feature-card map-card" @click="router.push({ name: 'MapView' })">
+        <div class="text-area">
+          <span class="tag">위치 기반</span>
+          <h3>내 주변 은행 찾기</h3>
+          <p>특판 상품이 있는 은행을 지도에서 찾아보세요.</p>
+        </div>
+        <div class="visual-area">📍</div>
+      </div>
+    </section>
+
+    <section class="search-section animate-slide-up delay-2">
+      <div class="search-content">
+        <h2>금융 상품, 무엇이든 물어보세요</h2>
+        <div class="search-box">
+          <input 
+            type="text" 
+            v-model="searchQuery" 
+            @keyup.enter="goSearch"
+            placeholder="은행명, 상품명을 입력하세요 (예: 국민은행)" 
+          />
+          <button class="search-icon-btn" @click="goSearch">🔍</button>
+        </div>
+        <div class="hashtags">
+          <span>#최고금리</span>
+          <span>#청년도약계좌</span>
+          <span>#단기적금</span>
+        </div>
       </div>
     </section>
 
@@ -67,119 +124,127 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAccountStore } from '@/stores/accounts'
 
+const store = useAccountStore()
 const router = useRouter()
-// 나중에 Pinia 등에서 로그인 상태를 가져올 변수 (일단 false로 가정)
-const isLogin = ref(false) 
-
-// 검색어 상태
 const searchQuery = ref('')
 
 const goSearch = () => {
   if (searchQuery.value.trim()) {
-    alert(`'${searchQuery.value}' 검색 기능은 아직 구현 중입니다!`)
-    // router.push({ name: 'search', query: { q: searchQuery.value } })
+    // 실제 검색 로직 구현 시 라우터 이동
+    // router.push({ name: 'SearchView', query: { q: searchQuery.value } })
+    alert(`'${searchQuery.value}' 검색 기능을 준비 중입니다!`)
   }
 }
 </script>
 
 <style scoped>
+/* 애니메이션 정의 */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.animate-fade-in { animation: fadeIn 0.8s ease-out; }
+.animate-slide-up { animation: slideUp 0.8s ease-out forwards; opacity: 0; }
+.delay-1 { animation-delay: 0.2s; }
+.delay-2 { animation-delay: 0.4s; }
+
 /* 전체 레이아웃 */
 .home-container {
   max-width: 1200px;
-  margin: 40px auto; /* 상하 여백 40px, 가운데 정렬 */
-  padding: 0 20px;
+  margin: 40px auto;
+  padding: 0 20px 80px; /* 하단 여백 넉넉히 */
 }
 
-/* 1. 상단 섹션 (Grid or Flex) */
+/* 1. 상단 섹션 */
 .top-section {
   display: flex;
   gap: 30px;
-  margin-bottom: 60px;
-  align-items: stretch; /* 높이 맞춤 */
+  margin-bottom: 50px;
+  align-items: stretch;
 }
 
-/* 왼쪽 히어로 배너 */
+/* 히어로 배너 */
 .hero-box {
-  flex: 2; /* 2:1 비율 */
-  background-color: #F0F4FF; /* 아주 연한 블루 배경 */
+  flex: 2.2;
+  background-color: #F0F4FF;
   border-radius: 24px;
-  padding: 40px;
+  padding: 50px 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 20px rgba(47, 101, 246, 0.05);
 }
 
 .badge {
   color: #2F65F6;
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 800;
+  font-size: 13px;
   background: #fff;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
   display: inline-block;
   margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 .main-title {
-  font-size: 32px;
-  line-height: 1.4;
+  font-size: 36px;
+  line-height: 1.35;
   color: #111;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
 }
 
-.main-title strong {
-  color: #2F65F6; /* 강조색 */
-}
+.main-title strong { color: #2F65F6; }
 
 .sub-text {
   color: #666;
-  font-size: 16px;
-  margin-bottom: 30px;
+  font-size: 17px;
+  margin-bottom: 32px;
   line-height: 1.6;
 }
 
-.hero-buttons {
-  display: flex;
-  gap: 10px;
-}
+.hero-buttons { display: flex; gap: 12px; }
 
 .cta-btn {
   border: none;
   background-color: #2F65F6;
   color: white;
-  padding: 12px 24px;
+  padding: 14px 28px;
   border-radius: 12px;
-  font-weight: bold;
+  font-weight: 700;
+  font-size: 15px;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+  box-shadow: 0 4px 10px rgba(47, 101, 246, 0.2);
 }
 
 .cta-btn.secondary {
-  background-color: #fff;
+  background-color: white;
   color: #2F65F6;
-  border: 1px solid #2F65F6;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 
-.cta-btn:hover {
-  opacity: 0.9;
-}
+.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(47, 101, 246, 0.3); }
 
-.hero-image {
-  font-size: 100px; /* 아이콘 크기 */
-  /* 실제 이미지가 있다면 img 태그로 교체하고 width 설정 */
+.floating-icon {
+  font-size: 120px;
+  animation: float 3s ease-in-out infinite;
 }
+@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0px); } }
 
-/* 오른쪽 로그인 위젯 */
+
+/* 로그인 위젯 */
 .login-widget {
   flex: 1;
   background-color: #fff;
-  border: 1px solid #eee;
+  border: 1px solid #f1f3f5;
   border-radius: 24px;
   padding: 30px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.03); /* 은은한 그림자 */
+  box-shadow: 0 10px 30px rgba(0,0,0,0.03);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -187,97 +252,75 @@ const goSearch = () => {
 }
 
 .avatar-circle {
-  width: 60px;
-  height: 60px;
-  background-color: #f1f3f5;
+  width: 50px;
+  height: 50px;
+  background-color: #f8f9fa;
   border-radius: 50%;
-  margin: 0 auto 20px;
+  margin: 0 auto 15px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 30px;
+  font-size: 24px;
 }
 
-.login-msg {
-  font-size: 16px;
-  color: #333;
-  margin-bottom: 20px;
-  line-height: 1.5;
-}
+.avatar-circle.active { background-color: #e7f1ff; }
 
-.primary-btn {
-  width: 100%;
-  padding: 14px;
-  background-color: #2F65F6;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-}
+.login-msg { font-size: 16px; color: #333; margin-bottom: 20px; line-height: 1.5; }
+.primary-btn { width: 100%; padding: 14px; background-color: #2F65F6; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; }
+.primary-btn:hover { background-color: #1c50d8; }
+.primary-btn.outline { background-color: white; color: #555; border: 1px solid #ddd; margin-top: auto; }
+.primary-btn.outline:hover { background-color: #f8f9fa; border-color: #ccc; }
 
-.primary-btn.outline {
-  background-color: white;
-  color: #2F65F6;
-  border: 1px solid #2F65F6;
-}
+.login-links { margin-top: 15px; font-size: 13px; color: #888; }
+.login-links span { cursor: pointer; }
+.login-links span:hover { text-decoration: underline; }
+.divider { margin: 0 8px; color: #eee; }
 
-.sub-links {
-  margin-top: 15px;
-  font-size: 13px;
-  color: #999;
-}
+.welcome-text { font-size: 18px; line-height: 1.5; margin-bottom: 20px; color: #333; }
+.my-menu { display: flex; gap: 10px; margin-bottom: 20px; }
+.menu-btn { flex: 1; padding: 10px; border: 1px solid #eee; border-radius: 8px; background: white; color: #555; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+.menu-btn:hover { background: #f8f9fa; border-color: #ddd; }
 
-.sub-links span {
-  cursor: pointer;
-}
 
-/* 2. 하단 검색 섹션 */
-.search-section {
-  background: linear-gradient(135deg, #2F65F6, #1E40AF); /* 파란색 그라데이션 */
-  border-radius: 24px;
-  padding: 50px;
-  text-align: center;
-  color: white;
-}
+/* 2. 퀵 메뉴 섹션 */
+.section-title { font-size: 20px; font-weight: 800; margin-bottom: 20px; color: #333; }
+.quick-menu-section { margin-bottom: 50px; }
+.quick-icons { display: flex; justify-content: space-around; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #f5f5f5; }
+.icon-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s; }
+.icon-item:hover { transform: translateY(-5px); }
+.icon-circle { width: 60px; height: 60px; border-radius: 20px; display: flex; justify-content: center; align-items: center; font-size: 28px; margin-bottom: 10px; }
+.icon-item span { font-size: 14px; font-weight: 600; color: #444; }
 
-.search-box {
-  position: relative;
-  max-width: 600px;
-  margin: 0 auto 20px;
-}
+/* 퀵 메뉴 아이콘 배경색 */
+.map-bg { background-color: #e3f2fd; }
+.chart-bg { background-color: #fff3cd; }
+.deposit-bg { background-color: #e8f5e9; }
+.board-bg { background-color: #f3e5f5; }
 
-.search-box input {
-  width: 100%;
-  padding: 18px 25px;
-  border-radius: 50px;
-  border: none;
-  font-size: 16px;
-  outline: none;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
 
-.search-icon-btn {
-  position: absolute;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
-}
+/* 3. 기능 소개 카드 섹션 */
+.feature-section { display: flex; gap: 20px; margin-bottom: 50px; }
+.feature-card { flex: 1; background: white; padding: 30px; border-radius: 20px; border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+.feature-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); border-color: #2F65F6; }
+.text-area .tag { font-size: 12px; font-weight: 800; color: #2F65F6; background: #eef4ff; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 10px; }
+.text-area h3 { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: #333; }
+.text-area p { font-size: 14px; color: #777; margin: 0; }
+.visual-area { font-size: 48px; opacity: 0.8; }
 
-.hashtags span {
-  margin: 0 8px;
-  font-size: 14px;
-  opacity: 0.8;
-  cursor: pointer;
-}
-.hashtags span:hover {
-  text-decoration: underline;
-  opacity: 1;
-}
 
+/* 4. 하단 검색 섹션 */
+.search-section { background: linear-gradient(120deg, #2F65F6, #5c8afa); border-radius: 24px; padding: 60px; text-align: center; color: white; box-shadow: 0 10px 30px rgba(47, 101, 246, 0.2); }
+.search-content h2 { font-size: 24px; margin-bottom: 30px; font-weight: 700; }
+.search-box { position: relative; max-width: 500px; margin: 0 auto 20px; }
+.search-box input { width: 100%; padding: 18px 25px; border-radius: 50px; border: none; font-size: 16px; outline: none; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+.search-icon-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; cursor: pointer; }
+.hashtags span { margin: 0 8px; font-size: 14px; opacity: 0.85; cursor: pointer; transition: opacity 0.2s; }
+.hashtags span:hover { opacity: 1; font-weight: 700; text-decoration: underline; }
+
+/* 모바일 반응형 */
+@media (max-width: 900px) {
+  .top-section { flex-direction: column; }
+  .feature-section { flex-direction: column; }
+  .quick-icons { flex-wrap: wrap; gap: 20px; }
+}
 </style>

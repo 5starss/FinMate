@@ -18,6 +18,10 @@ import HeaderNavbar from '@/components/HeaderNavbar.vue'
 </script>
 
 <style>
+body {
+  margin: 0;
+  padding: 0;
+}
 .app-container {
   /* 헤더 높이만큼 띄우거나, 전체 레이아웃 잡을 때 사용 */
   width: 100%;

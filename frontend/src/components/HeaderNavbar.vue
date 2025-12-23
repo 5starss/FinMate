@@ -35,10 +35,10 @@
           <RouterLink :to="{ name: 'DepositView' }">예금비교</RouterLink>
           <RouterLink :to="{ name: 'SavingView' }">적금비교</RouterLink>
           <RouterLink :to="{ name: 'MyPageView' }">마이페이지</RouterLink>
-          <!-- <RouterLink to="/articles">커뮤니티</RouterLink> -->
-          <RouterLink :to="{ name: 'SearchView' }">비디오 검색</RouterLink>
+          <RouterLink :to="{ name: 'SearchView' }">정보검색</RouterLink>
           <RouterLink :to="{ name: 'MapView' }">지도</RouterLink>
           <RouterLink :to="{ name: 'ChartView' }">현물검색</RouterLink>
+          <RouterLink to="/">커뮤니티</RouterLink>
         </nav>
       </div>
     </div>
@@ -64,6 +64,14 @@ const handleLogout = () => {
 </script>
 
 <style scoped>
+.header-wrapper {
+  position: sticky; /* 스크롤 시 화면에 붙도록 설정 */
+  top: 0; /* 화면 최상단에 고정 */
+  z-index: 1000; /* 다른 콘텐츠보다 위에 오도록 순서 지정 */
+  background-color: #fff; /* 스크롤 시 뒤에 내용이 비치지 않게 배경색 지정 */
+  width: 100%;
+}
+
 /* 공통 레이아웃 (가운데 정렬용) */
 .inner-container {
   max-width: 1200px;
@@ -74,7 +82,7 @@ const handleLogout = () => {
 /* 1. 상단 유틸리티 바 스타일 */
 .top-bar {
   border-bottom: 1px solid #eee;
-  font-size: 13px; /* 작은 글씨 */
+  font-size: 5px; /* 작은 글씨 */
   padding: 10px 0;
 }
 
@@ -93,7 +101,7 @@ const handleLogout = () => {
 .user-menu li {
   display: flex;
   align-items: center;
-  font-size: 1rem;
+  font-size: 0.9rem;
   /* margin-left: 2.4rem; */
 }
 
@@ -124,6 +132,7 @@ const handleLogout = () => {
 }
 
 .logo {
+  margin-left: 15px;
   font-size: 26px;
   font-weight: 800;
   color: #2F65F6;
@@ -132,7 +141,9 @@ const handleLogout = () => {
 
 .nav-links {
   display: flex;
-  gap: 40px; /* 메뉴 간격 넓게 */
+  gap: 50px; /* 메뉴 간격 넓게 */
+  align-items: center;
+  margin-left: 50px;
 }
 
 .nav-links a {

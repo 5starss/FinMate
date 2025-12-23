@@ -1,43 +1,54 @@
 <template>
-  <div class="spot-container">
-    <div class="header">
-      <h2>현물 상품 비교</h2>
-    </div>
+  <div class="page-wrapper">
+    <div class="content-container">
+      <div class="page-header">
+        <h2 class="title">현물 상품 시세 조회</h2>
+        <p class="subtitle">국제 금/은 시세의 과거 데이터를 조회하고 변동 추이를 확인하세요.</p>
+      </div>
 
-    <div class="control-panel">
-      <h3>금/은 가격 변동</h3>
-      
-      <div class="controls">
-        <div class="date-group">
-          <div class="date-input">
-            <label>시작일:</label>
-            <input type="date" v-model="startDate" @change="updateChart" class="form-control">
+      <div class="control-panel">
+        <div class="date-controls">
+          <div class="input-group">
+            <label>시작일</label>
+            <input type="date" v-model="startDate" @change="updateChart" class="custom-input">
           </div>
-          <div class="date-input">
-            <label>종료일:</label>
-            <input type="date" v-model="endDate" @change="updateChart" class="form-control">
+          <span class="tilde">~</span>
+          <div class="input-group">
+            <label>종료일</label>
+            <input type="date" v-model="endDate" @change="updateChart" class="custom-input">
           </div>
         </div>
 
-        <div class="btn-group">
+        <div class="asset-toggle">
           <button 
             @click="changeAsset('gold')" 
             :class="['toggle-btn', { active: currentAsset === 'gold' }]"
-          >금</button>
+          >
+            <span class="icon">🟡</span> 금 (Gold)
+          </button>
           <button 
             @click="changeAsset('silver')" 
             :class="['toggle-btn', { active: currentAsset === 'silver' }]"
-          >은</button>
+          >
+            <span class="icon">⚪</span> 은 (Silver)
+          </button>
         </div>
       </div>
       
-      <hr>
+      <div class="divider"></div>
 
-      <div class="chart-wrapper">
-        <canvas v-show="hasData" id="spotChart"></canvas>
+      <div class="chart-section">
+        <div v-if="isLoading" class="status-msg">
+          데이터를 불러오는 중입니다...
+        </div>
         
-        <div v-if="!hasData" class="no-data-msg">
-          <p>선택된 조건에 해당하는 데이터가 없습니다.</p>
+        <div v-else class="chart-wrapper">
+          <canvas v-show="hasData" id="spotChart"></canvas>
+          
+          <div v-if="!hasData" class="status-msg no-data">
+            <p>선택된 기간에 해당하는 데이터가 없습니다.</p>
+            <small>날짜 범위를 변경해 보세요.</small>
+          </div>
         </div>
       </div>
     </div>
@@ -51,11 +62,11 @@ import Chart from 'chart.js/auto'
 
 // 1. 상태 변수
 const currentAsset = ref('gold')
-const startDate = ref('') // 처음에 비워두면 전체 기간으로 인식됨
+const startDate = ref('') 
 const endDate = ref('')
 const goldData = ref([])
 const silverData = ref([])
-const isLoading = ref(true) // 로딩 상태 추가
+const isLoading = ref(true)
 let chartInstance = null
 
 // 2. Computed
@@ -71,23 +82,22 @@ onMounted(async () => {
 })
 
 const loadData = async () => {
-  isLoading.value = true // 로딩 시작
+  isLoading.value = true
   try {
+    // [주의] 실제 파일 경로가 public 폴더에 있는지 확인해주세요.
     const goldRes = await axios.get('/Gold_prices.json') 
     const silverRes = await axios.get('/Silver_prices.json')
     
-    // 가져온 Raw 데이터를 깔끔하게 변환해서 저장
     goldData.value = processRawData(goldRes.data)
     silverData.value = processRawData(silverRes.data)
     
   } catch (error) {
     console.error("데이터 로드 실패:", error)
   } finally {
-    isLoading.value = false // 로딩 종료
+    isLoading.value = false
   }
 }
 
-// 데이터 전처리 (날짜 변환 및 정렬)
 const processRawData = (rawData) => {
   const processed = rawData.map(item => {
     const dateObj = new Date(item.Date)
@@ -100,26 +110,21 @@ const processRawData = (rawData) => {
     }
   })
   
-  // 날짜 오름차순 정렬 (과거 -> 현재)
   return processed.sort((a, b) => new Date(a.date) - new Date(b.date))
 }
 
-// 4. 자산 변경
 const changeAsset = (asset) => {
   currentAsset.value = asset
   updateChart()
 }
 
-// 필터링 로직
 const getFilteredData = () => {
   let targetData = currentAsset.value === 'gold' ? goldData.value : silverData.value
   
-  // 시작일과 종료일이 모두 비어있으면 -> 전체 데이터 반환
   if (!startDate.value && !endDate.value) {
     return targetData
   }
 
-  // 하나라도 선택되었으면 필터링
   return targetData.filter(item => {
     const itemDate = new Date(item.date)
     const start = startDate.value ? new Date(startDate.value) : new Date('1900-01-01')
@@ -128,26 +133,23 @@ const getFilteredData = () => {
   })
 }
 
-// 6. 차트 업데이트
 const updateChart = () => {
   if (!chartInstance) return
   
   const filtered = getFilteredData()
   if (filtered.length === 0) return
 
-  // 데이터 시간순 정렬
   filtered.sort((a, b) => new Date(a.date) - new Date(b.date))
 
   chartInstance.data.labels = filtered.map(item => item.date)
   chartInstance.data.datasets[0].data = filtered.map(item => item.price)
   chartInstance.data.datasets[0].label = currentAsset.value === 'gold' ? 'Gold Price (USD)' : 'Silver Price (USD)'
   chartInstance.data.datasets[0].borderColor = currentAsset.value === 'gold' ? '#FFD700' : '#C0C0C0'
-  chartInstance.data.datasets[0].backgroundColor = currentAsset.value === 'gold' ? 'rgba(255, 215, 0, 0.2)' : 'rgba(192, 192, 192, 0.2)'
+  chartInstance.data.datasets[0].backgroundColor = currentAsset.value === 'gold' ? 'rgba(255, 215, 0, 0.1)' : 'rgba(192, 192, 192, 0.1)'
   
   chartInstance.update()
 }
 
-// 7. 차트 렌더링
 const renderChart = () => {
   const ctx = document.getElementById('spotChart')
   if (!ctx) return
@@ -155,7 +157,6 @@ const renderChart = () => {
   if (chartInstance) chartInstance.destroy()
 
   const filtered = getFilteredData()
-  // 데이터 정렬
   filtered.sort((a, b) => new Date(a.date) - new Date(b.date))
   
   const isGold = currentAsset.value === 'gold'
@@ -168,109 +169,212 @@ const renderChart = () => {
         label: isGold ? 'Gold Price (USD)' : 'Silver Price (USD)',
         data: filtered.map(item => item.price),
         borderColor: isGold ? '#FFD700' : '#C0C0C0',
-        backgroundColor: isGold ? 'rgba(255, 215, 0, 0.2)' : 'rgba(192, 192, 192, 0.2)',
+        backgroundColor: isGold ? 'rgba(255, 215, 0, 0.1)' : 'rgba(192, 192, 192, 0.1)',
         borderWidth: 2,
-        tension: 0.1,
-        pointRadius: 2
+        tension: 0.1, // 선을 약간 부드럽게 (0이면 직선)
+        pointRadius: 2, // 평소엔 점 숨김
+        pointHoverRadius: 4, // 호버 시 점 표시
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: 'top' } },
-      scales: { y: { beginAtZero: false } }
+      plugins: { 
+        legend: { 
+          position: 'top',
+          labels: {
+            font: { family: "'Noto Sans KR', sans-serif", size: 14 }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+        }
+      },
+      scales: { 
+        x: {
+          grid: { display: false } // X축 격자 숨김 (깔끔하게)
+        },
+        y: { 
+          beginAtZero: false,
+          grid: { color: '#f0f0f0' } // Y축 격자 연하게
+        } 
+      },
+      interaction: {
+        mode: 'nearest',
+        axis: 'x',
+        intersect: false
+      }
     }
   })
 }
 </script>
 
 <style scoped>
-.spot-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Noto Sans KR', sans-serif;
-}
-
-.header {
-  background-color: #5cb85c; 
-  color: white;
-  padding: 15px;
-  text-align: center;
-  border-radius: 5px 5px 0 0;
-  margin-bottom: 20px;
-}
-
-.control-panel {
-  border: 1px solid #ddd;
-  padding: 20px;
-  border-radius: 5px;
+/* 페이지 전체 래퍼 (배경색 및 여백) */
+.page-wrapper {
   background-color: white;
+  min-height: calc(100vh - 70px);
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
-.controls {
+/* 콘텐츠 컨테이너 (흰색 카드) */
+.content-container {
+  background-color: white;
+  width: 100%;
+  max-width: 1100px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  padding: 30px;
+  border: 1px solid #eee;
+}
+
+/* 헤더 스타일 */
+.page-header {
+  margin-bottom: 30px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #333;
+  margin: 8px;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: #666;
+}
+
+/* 컨트롤 패널 */
+.control-panel {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.date-group {
-  display: flex;
   gap: 20px;
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
 }
 
-.date-input {
+.date-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.input-group {
   display: flex;
   flex-direction: column;
-}
-
-.date-input label {
-  font-size: 12px;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-.form-control {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.btn-group {
-  display: flex;
   gap: 5px;
 }
 
-.toggle-btn {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.input-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin-left: 4px;
+}
+
+.custom-input {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.custom-input:focus {
+  border-color: #2F65F6;
+  box-shadow: 0 0 0 3px rgba(47, 101, 246, 0.1);
+}
+
+.tilde {
+  margin-top: 24px; /* 라벨 높이만큼 내림 */
+  color: #888;
   font-weight: bold;
-  background-color: #eee;
+}
+
+/* 토글 버튼 그룹 */
+.asset-toggle {
+  display: flex;
+  background-color: #e9ecef;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.toggle-btn {
+  padding: 10px 24px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle-btn:hover {
   color: #333;
 }
 
+/* 활성화된 버튼 스타일 */
 .toggle-btn.active {
-  background-color: #5cb85c;
-  color: white;
+  background-color: white;
+  color: #2F65F6;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.icon {
+  font-size: 14px;
+}
+
+.divider {
+  height: 1px;
+  background-color: #eee;
+  margin: 30px 0;
+}
+
+/* 차트 영역 */
+.chart-section {
+  position: relative;
+  min-height: 400px;
 }
 
 .chart-wrapper {
-  position: relative;
-  height: 400px;
+  height: 500px;
   width: 100%;
 }
 
-.no-data-msg, .loading-msg {
-  padding: 50px;
+.status-msg {
   text-align: center;
+  padding: 100px 0;
   color: #666;
+  font-size: 16px;
+}
+
+.no-data {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.no-data p {
+  margin: 0 0 8px 0;
   font-weight: bold;
-  border: 1px dashed #ccc;
-  border-radius: 5px;
-  margin-top: 20px;
+  color: #555;
+}
+
+.no-data small {
+  color: #999;
 }
 </style>
