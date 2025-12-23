@@ -34,6 +34,7 @@
         <nav class="nav-links">
           <RouterLink :to="{ name: 'DepositView' }">예금비교</RouterLink>
           <RouterLink :to="{ name: 'SavingView' }">적금비교</RouterLink>
+          <RouterLink :to="{ name: 'MyPageView' }">마이페이지</RouterLink>
           <!-- <RouterLink to="/articles">커뮤니티</RouterLink> -->
           <RouterLink :to="{ name: 'SearchView' }">비디오 검색</RouterLink>
           <RouterLink :to="{ name: 'MapView' }">지도</RouterLink>

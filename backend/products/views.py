@@ -204,18 +204,38 @@ def saving_subscribe(request, product_id):
 
 # user_all_subscriptions 뷰는 기존 로직을 그대로 유지해도 무방합니다. (Serializer가 데이터를 처리할 것이기 때문)
 
-# [추가] 유저 페이지에서 전체 가입 목록을 가져올 때 사용할 뷰
+# 유저 페이지에서 전체 가입 목록을 가져올 때 사용할 뷰
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_all_subscriptions(request):
     deposit_subs = DepositSubscription.objects.filter(user=request.user)
     saving_subs = SavingSubscription.objects.filter(user=request.user)
     
+    # [추가] 간단한 통계 데이터 계산
+    # 예: 총 가입 상품 개수나 평균 금리 계산 가능
+    total_count = deposit_subs.count() + saving_subs.count()
+    
     d_serializer = DepositSubscriptionSerializer(deposit_subs, many=True)
     s_serializer = SavingSubscriptionSerializer(saving_subs, many=True)
     
     return Response({
+        "username": request.user.username,
+        "total_count": total_count,
         "deposits": d_serializer.data,
         "savings": s_serializer.data
     })
-    
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def deposit_unsubscribe(request, subscription_id):
+    # 본인의 가입 내역만 삭제할 수 있도록 user=request.user 조건 추가
+    subscription = get_object_or_404(DepositSubscription, id=subscription_id, user=request.user)
+    subscription.delete()
+    return Response({"message": "예금 가입이 해지되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def saving_unsubscribe(request, subscription_id):
+    subscription = get_object_or_404(SavingSubscription, id=subscription_id, user=request.user)
+    subscription.delete()
+    return Response({"message": "적금 가입이 해지되었습니다."}, status=status.HTTP_204_NO_CONTENT)

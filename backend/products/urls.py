@@ -14,6 +14,10 @@ urlpatterns = [
     path('deposits/<int:product_id>/subscribe/', views.deposit_subscribe, name='deposit_subscribe'),
     path('savings/<int:product_id>/subscribe/', views.saving_subscribe, name='saving_subscribe'),
 
-    # 4. 유저 페이지용 전체 가입 목록
+    # 4. 상품 가입해지 
+    path('deposits/unsubscribe/<int:subscription_id>/', views.deposit_unsubscribe),
+    path('savings/unsubscribe/<int:subscription_id>/', views.saving_unsubscribe),
+    
+    # 5. 유저 페이지용 전체 가입 목록
     path('user-subscriptions/', views.user_all_subscriptions, name='user_all_subscriptions'),
 ]
