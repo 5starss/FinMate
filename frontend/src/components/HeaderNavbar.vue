@@ -127,6 +127,7 @@ const handleLogout = () => {
 .nav-content {
   display: flex;
   align-items: center;
+  /* justify-content: space-between; */
   /* 로고와 메뉴 사이 간격 조절 */
   gap: 60px; 
 }
