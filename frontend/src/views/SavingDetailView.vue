@@ -21,7 +21,22 @@
             <span class="text-danger">최고 {{ opt.intr_rate2 }}%</span>
           </label>
         </div>
+
+        <div class="mt-4 p-3 border-top">
+          <h5 class="mb-3 text-dark fw-bold">가입 금액 설정</h5>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-wallet2 text-success"></i></span>
+            <input 
+              type="number" 
+              v-model="amount" 
+              class="form-control" 
+              placeholder="가입할 금액을 입력하세요 (예: 1000000)"
+            >
+            <span class="input-group-text">원</span>
+          </div>
+        </div>
       </div>
+      
       <div v-else class="alert alert-success d-flex align-items-center mb-0">
         <i class="bi bi-check-circle-fill me-2"></i>
         <div>이미 가입 완료된 적금입니다. 마이페이지에서 상세 내역을 확인하세요.</div>
@@ -32,13 +47,13 @@
       <div v-if="isLoggedIn">
         <button 
           @click="clickSubscribe" 
-          :disabled="product.is_joined || !selectedOptionId"
+          :disabled="product.is_joined || !selectedOptionId || !amount"
           :class="product.is_joined ? 'btn btn-secondary' : 'btn btn-success btn-lg w-100 w-md-auto'"
         >
           {{ product.is_joined ? '이미 가입된 상품' : '선택한 기간으로 적금 가입하기' }}
         </button>
         <p v-if="!selectedOptionId && !product.is_joined" class="text-muted mt-2 small">
-          * 원하시는 저축 기간을 선택해 주세요.
+          * 원하시는 저축 기간과 가입 금액을 입력해 주세요.
         </p>
       </div>
       <div v-else class="alert alert-light border">
@@ -84,6 +99,7 @@ const accountStore = useAccountStore()
 
 const product = ref(null)
 const selectedOptionId = ref(null)
+const amount = ref(null) // ✅ 가입 금액 변수 추가
 const isLoggedIn = computed(() => accountStore.isLogin)
 
 onMounted(async () => {
@@ -95,7 +111,6 @@ onMounted(async () => {
   }
 })
 
-// 기간별 최고금리 옵션 필터링 로직 (기존 유지)
 const uniqueOptions = computed(() => {
   if (!product.value?.options) return []
   const bestByTerm = new Map()
@@ -109,14 +124,15 @@ const uniqueOptions = computed(() => {
   return [...bestByTerm.values()].sort((a, b) => Number(a.save_trm) - Number(b.save_trm))
 })
 
-// 가입 처리
 const clickSubscribe = async () => {
   if (confirm(`[${product.value.fin_prdt_nm}] 적금에 가입하시겠습니까?`)) {
     try {
       const payload = {
         product_id: product.value.id,
-        option_id: selectedOptionId.value // 선택된 옵션 ID 전송
+        option_id: selectedOptionId.value,
+        amount: amount.value // ✅ 가입 금액 데이터 포함
       }
+      // 주의: store의 subscribeSaving 함수 인자 순서를 확인하세요 (payload만 받는지, id와 payload를 따로 받는지)
       await store.subscribeSaving(payload, accountStore.token)
       alert('적금 가입이 완료되었습니다! 마이페이지에서 확인해보세요.')
       product.value.is_joined = true
@@ -126,9 +142,3 @@ const clickSubscribe = async () => {
   }
 }
 </script>
-
-<style scoped>
-.selection-box { border-left: 5px solid #198754; }
-.hover-shadow:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: 0.3s; }
-.btn-lg { padding: 12px 30px; font-weight: bold; }
-</style>

@@ -54,13 +54,14 @@ class SavingOptions(models.Model):
 class DepositSubscription(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     product = models.ForeignKey(DepositProducts, on_delete=models.CASCADE)
-    # 가입 시점에 선택한 구체적인 옵션(기간/금리) 정보 저장
     deposit_option = models.ForeignKey(DepositOptions, on_delete=models.CASCADE, null=True)
+    # ✅ 가입 금액 필드 추가
+    amount = models.BigIntegerField(default=0) 
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
-            # 한 유저가 한 상품에 중복 가입하는 것 방지
+            # 한 유저가 한 상품에 중복 가입하는 것 방지 유지
             models.UniqueConstraint(fields=["user", "product"], name="uniq_user_deposit_product")
         ]
 
@@ -68,6 +69,8 @@ class SavingSubscription(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     product = models.ForeignKey(SavingProducts, on_delete=models.CASCADE)
     saving_option = models.ForeignKey(SavingOptions, on_delete=models.CASCADE, null=True)
+    # ✅ 가입 금액 필드 추가
+    amount = models.BigIntegerField(default=0)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

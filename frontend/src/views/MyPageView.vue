@@ -105,7 +105,7 @@
         <p class="text-muted mb-0">아직 가입한 금융 상품이 없습니다.</p>
       </div>
     </section>
-
+    
     <div v-if="selectedProduct" class="modal-overlay" @click.self="closeModal">
       <div class="modal-content border-0 shadow animate__animated animate__fadeInUp">
         <div class="modal-header border-0">
@@ -116,6 +116,12 @@
           <div class="text-center mb-4">
             <h4 class="fw-bold text-primary mb-1">{{ selectedProduct.product_name }}</h4>
             <span class="badge bg-light text-dark border">{{ selectedProduct.bank_name }}</span>
+          </div>
+          <div class="mb-4 text-center">
+            <label class="fw-bold small mb-1 text-secondary d-block">가입 금액</label>
+              <div class="fs-4 fw-bold text-dark">
+                {{ formatIncome(selectedProduct.amount) }}
+              </div>
           </div>
           <div class="row g-2 text-center bg-light p-3 rounded-3 mb-4">
             <div class="col-4 border-end">
@@ -175,8 +181,13 @@ const fetchSubscriptions = async () => {
     const res = await axios.get(`${API_URL}/products/user-subscriptions/`, {
       headers: { Authorization: `Token ${accountStore.token}` }
     })
+    // 백엔드에서 준 데이터를 그대로 할당
+    // res.data 안에 deposits, savings가 이미 들어있으므로 정상 작동하게 됩니다.
     subscriptions.value = res.data
-  } catch (err) { console.error(err) }
+    console.log('가입 정보:', res.data)
+  } catch (err) { 
+    console.error(err) 
+  }
 }
 
 // --- 프로필 수정 관련 ---
@@ -215,8 +226,11 @@ const confirmUnsubscribe = async () => {
 }
 
 // --- 유틸리티 ---
-const totalCount = computed(() => (subscriptions.value.deposits?.length || 0) + (subscriptions.value.savings?.length || 0))
-const genderDisplay = computed(() => {
+  const totalCount = computed(() => {
+  return subscriptions.value.total_count ?? 
+         ((subscriptions.value.deposits?.length || 0) + (subscriptions.value.savings?.length || 0))
+})
+  const genderDisplay = computed(() => {
   const g = userInfo.value?.profile?.gender
   return g === 'M' ? '남성' : g === 'F' ? '여성' : '미설정'
 })
