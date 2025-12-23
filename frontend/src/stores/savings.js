@@ -10,7 +10,7 @@ export const useSavingStore = defineStore('saving', () => {
   const getSavings = function () {
     return axios({
       method: 'get',
-      url: `${API_URL}/products/saving/`,
+      url: `${API_URL}/products/saving-list/`,
     })
       .then(res => {
         savings.value = res.data
@@ -26,14 +26,20 @@ export const useSavingStore = defineStore('saving', () => {
   const getSavingDetail = function (id) {
     return axios({
       method: 'get',
-      url: `${API_URL}/products/api/savings/${id}/`,
+      url: `${API_URL}/products/savings/${id}/`,
     })
   }
   
-  return {
-    savings,
-    getSavings,
-    getSavingDetail,
-    API_URL,
+  const subscribeSaving = function (productId, token) {
+  return axios({
+    method: 'post',
+    url: `${API_URL}/products/savings/${productId}/subscribe/`,
+    headers: {
+      Authorization: `Token ${token}`
+    }
+  })
   }
+
+// return 객체에 subscribeSaving 추가 필수!
+  return { savings, getSavings, getSavingDetail, subscribeSaving, API_URL }
 }, { persist: true })

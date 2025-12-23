@@ -1,13 +1,13 @@
 from django.shortcuts import get_object_or_404, get_list_or_404
 from django.conf import settings
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 import requests, json
 from .models import DepositProducts, DepositOptions, SavingProducts, SavingOptions, DepositSubscription, SavingSubscription
-from .selializers import DepositProductsSerializer, DepositOptionsSerializer, SavingProductsSerializer, SavingOptionsSerializer, DepositProductDetailSerializer, SavingProductDetailSerializer
+from .serializers import DepositProductsSerializer, DepositOptionsSerializer, SavingProductsSerializer, SavingOptionsSerializer, DepositProductDetailSerializer, SavingProductDetailSerializer, DepositSubscriptionSerializer, SavingSubscriptionSerializer
 
 
 API_KEY = settings.API_KEY
@@ -139,20 +139,54 @@ def saving_detail(request, pk):
     )
     return Response(data, status=status.HTTP_200_OK)
 
-@api_view(['POST'])
-def deposit_subscribe(request, pk):
-    product = get_object_or_404(DepositProducts, pk=pk)
-    _, created = DepositSubscription.objects.get_or_create(
-        user=request.user,
-        product=product
-    )
-    return Response({"joined": True, "created": created}, status=status.HTTP_200_OK)
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def deposit_subscribe(request, product_id):
+    product = get_object_or_404(DepositProducts, pk=product_id)
 
-@api_view(['POST'])
-def saving_subscribe(request, pk):
-    product = get_object_or_404(SavingProducts, pk=pk)
-    _, created = SavingSubscription.objects.get_or_create(
-        user=request.user,
-        product=product
-    )
-    return Response({"joined": True, "created": created}, status=status.HTTP_200_OK)
+    # 1. 가입하기 (POST)
+    if request.method == 'POST':
+        if DepositSubscription.objects.filter(user=request.user, deposit_product=product).exists():
+            return Response({"message": "이미 가입한 예금 상품입니다."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        DepositSubscription.objects.create(user=request.user, deposit_product=product)
+        return Response({"message": "예금 상품 가입 완료"}, status=status.HTTP_201_CREATED)
+
+    # 2. 특정 유저의 가입 여부 확인 등 (GET - 필요시)
+    elif request.method == 'GET':
+        subscription = DepositSubscription.objects.filter(user=request.user, deposit_product=product).first()
+        serializer = DepositSubscriptionSerializer(subscription)
+        return Response(serializer.data)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def saving_subscribe(request, product_id):
+    product = get_object_or_404(SavingProducts, pk=product_id)
+
+    if request.method == 'POST':
+        if SavingSubscription.objects.filter(user=request.user, saving_product=product).exists():
+            return Response({"message": "이미 가입한 적금 상품입니다."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        SavingSubscription.objects.create(user=request.user, saving_product=product)
+        return Response({"message": "적금 상품 가입 완료"}, status=status.HTTP_201_CREATED)
+
+    elif request.method == 'GET':
+        subscription = SavingSubscription.objects.filter(user=request.user, saving_product=product).first()
+        serializer = SavingSubscriptionSerializer(subscription)
+        return Response(serializer.data)
+
+# [추가] 유저 페이지에서 전체 가입 목록을 가져올 때 사용할 뷰
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_all_subscriptions(request):
+    deposit_subs = DepositSubscription.objects.filter(user=request.user)
+    saving_subs = SavingSubscription.objects.filter(user=request.user)
+    
+    d_serializer = DepositSubscriptionSerializer(deposit_subs, many=True)
+    s_serializer = SavingSubscriptionSerializer(saving_subs, many=True)
+    
+    return Response({
+        "deposits": d_serializer.data,
+        "savings": s_serializer.data
+    })
+    
