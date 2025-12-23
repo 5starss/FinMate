@@ -14,7 +14,7 @@ class Category(models.Model):
 
 class Transaction(models.Model):
     # 실제 수입/지출 내역
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transactions')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
     title = models.CharField(max_length=100) # 내역명 (예: 점심식사)
     amount = models.IntegerField() # 금액
