@@ -49,7 +49,7 @@
           </div>
           <div class="my-menu">
             <button class="menu-btn">찜한 상품</button>
-            <button class="menu-btn">내가 쓴 글</button>
+            <button class="menu-btn" @click="router.push({ name: 'RecommendView' })">AI 추천</button>
           </div>
           <button class="primary-btn outline" @click="store.logOut()">로그아웃</button>
         </div>
