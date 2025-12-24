@@ -25,7 +25,7 @@
                 <i class="bi bi-person-fill"></i>
               </div>
               <div class="text-info">
-                <span class="username">{{ article.username || '익명' }}</span>
+                <span class="username">{{ article.user_nickname || '익명' }}</span>
                 <span class="date">{{ formatDate(article.created_at) }}</span>
               </div>
             </div>
@@ -77,13 +77,14 @@ const goDetail = (id) => {
 }
 
 const formatDate = (dateStr) => {
+  if (!dateStr) return ''
   const date = new Date(dateStr)
   return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`
 }
 </script>
 
 <style scoped>
-/* 애니메이션 */
+/* 기존 스타일 그대로 유지 */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -97,7 +98,6 @@ const formatDate = (dateStr) => {
   min-height: 800px;
 }
 
-/* 헤더 */
 .header-section {
   display: flex;
   justify-content: space-between;
@@ -119,7 +119,6 @@ const formatDate = (dateStr) => {
 .write-btn:hover { background: #1c50d8; transform: translateY(-2px); }
 .write-btn.small { padding: 10px 20px; font-size: 0.95rem; margin-top: 20px; }
 
-/* 게시글 그리드 */
 .article-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -183,7 +182,6 @@ const formatDate = (dateStr) => {
 .read-more { font-size: 0.9rem; color: #2F65F6; font-weight: 700; opacity: 0; transform: translateX(-10px); transition: all 0.2s; }
 .article-card:hover .read-more { opacity: 1; transform: translateX(0); }
 
-/* Empty State */
 .empty-state { text-align: center; padding: 80px 0; background: #f8f9fa; border-radius: 20px; }
 .icon-box { font-size: 4rem; margin-bottom: 20px; opacity: 0.5; }
 .empty-state h3 { font-size: 1.5rem; font-weight: 700; color: #333; margin-bottom: 10px; }

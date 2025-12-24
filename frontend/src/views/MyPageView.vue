@@ -9,9 +9,26 @@
       <div class="profile-card">
         <div class="profile-header">
           <div class="avatar-area">
-            <div class="avatar-circle">
-              <i class="bi bi-person-fill"></i>
+            <div 
+              class="avatar-circle" 
+              :class="{ 'editable': isEditing }"
+              @click="triggerFileInput"
+            >
+              <img v-if="displayImageUrl" :src="displayImageUrl" class="profile-img" alt="profile" />
+              <i v-else class="bi bi-person-fill default-icon"></i>
+
+              <div v-if="isEditing" class="camera-overlay">
+                <i class="bi bi-camera-fill"></i>
+              </div>
             </div>
+
+            <input
+              ref="fileInput"
+              type="file"
+              accept="image/*"
+              style="display:none"
+              @change="onFileChange"
+            />
           </div>
           <div class="user-info">
             <div class="name-row">
@@ -211,7 +228,10 @@ import { useLedgerStore } from '@/stores/ledgers'
 
 const ledgerStore = useLedgerStore()
 const accountStore = useAccountStore()
-
+// --- 이미지 관련 상태 추가 (Script 상단에 넣어주세요) ---
+const fileInput = ref(null)      // input 태그 연결용
+const selectedFile = ref(null)   // 서버 전송용 파일 객체
+const previewUrl = ref(null)     // 화면 미리보기용 URL
 const userInfo = ref(null)
 const isEditing = ref(false)
 const editData = ref(null)
@@ -269,27 +289,73 @@ const totalAssets = computed(() => {
   return cashBalance.value + totalDepositAmount.value + totalSavingAmount.value
 })
 
-// --- 프로필 수정 로직 ---
-const toggleEdit = () => {
-  if (isEditing.value) {
-    // 취소 시 되돌리기
-    editData.value = JSON.parse(JSON.stringify(userInfo.value))
-  }
-  isEditing.value = !isEditing.value
+// 이미지 경로 계산 (중요: 서버 주소와 합치기)
+const displayImageUrl = computed(() => {
+  if (previewUrl.value) return previewUrl.value
+  const path = userInfo.value?.profile?.image
+  if (!path) return null
+  return path.startsWith('http') ? path : `${API_URL}${path}`
+})
+
+// 이미지 클릭 시 파일 창 열기
+const triggerFileInput = () => {
+  if (isEditing.value) fileInput.value.click()
 }
 
+// 파일 선택 시 미리보기 생성
+const onFileChange = (e) => {
+  const file = e.target.files[0]
+  if (file) {
+    selectedFile.value = file
+    previewUrl.value = URL.createObjectURL(file)
+  }
+}
+
+// --- 프로필 수정 로직 (기존 saveProfile을 이 코드로 교체하세요) ---
 const saveProfile = async () => {
   try {
-    const res = await axios.put(`${API_URL}/accounts/profile/`, editData.value, {
-      headers: { Authorization: `Token ${accountStore.token}` }
+    // 이미지를 보내기 위해 FormData 객체 생성
+    const formData = new FormData()
+    
+    // 텍스트 데이터 추가
+    formData.append('nickname', editData.value.nickname || '')
+    formData.append('age', editData.value.profile.age || '')
+    formData.append('gender', editData.value.profile.gender || 'M')
+    formData.append('income', editData.value.profile.income || 0)
+    formData.append('spending_habits', editData.value.profile.spending_habits || '보수적')
+
+    // 새로 선택한 이미지가 있을 때만 formData에 추가
+    if (selectedFile.value) {
+      formData.append('profile.image', selectedFile.value)
+    }
+
+    const res = await axios.put(`${API_URL}/accounts/profile/`, formData, {
+      headers: { 
+        Authorization: `Token ${accountStore.token}`,
+        'Content-Type': 'multipart/form-data' // 파일 전송 시 필수
+      }
     })
+    
     userInfo.value = res.data
     isEditing.value = false
+    selectedFile.value = null // 초기화
+    previewUrl.value = null  // 초기화
     alert('정보가 수정되었습니다.')
+    fetchProfile() // 최신 정보 다시 가져오기
   } catch (err) { 
     console.error(err)
-    alert('수정 실패') 
+    alert('수정 실패: ' + (err.response?.data?.detail || '오류 발생')) 
   }
+}
+
+// toggleEdit 함수도 초기화 로직 추가 (선택사항)
+const toggleEdit = () => {
+  if (isEditing.value) {
+    editData.value = JSON.parse(JSON.stringify(userInfo.value))
+    previewUrl.value = null   // 취소 시 미리보기 삭제
+    selectedFile.value = null // 취소 시 선택 파일 삭제
+  }
+  isEditing.value = !isEditing.value
 }
 
 // --- 모달 로직 ---
@@ -361,10 +427,32 @@ onMounted(() => {
   border-right: 1px solid #eee; padding-right: 50px; min-width: 250px;
 }
 .avatar-circle {
-  width: 100px; height: 100px; background: #f0f4ff; border-radius: 50%;
+  width: 100px; height: 100px;
+  background: #f0f4ff; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 3rem; color: #2F65F6; margin-bottom: 15px;
+  position: relative; overflow: hidden; /* 이미지가 원을 넘지 않게 함 */
+  margin-bottom: 15px;
+  transition: 0.3s;
 }
+.avatar-circle.editable { cursor: pointer; border: 2px solid #2F65F6; }
+/* 실제 이미지 스타일 */
+.profile-img {
+  width: 100%; height: 100%;
+  object-fit: cover; /* 사진 비율 유지하며 꽉 채움 */
+}
+
+/* 이미지 위 카메라 오버레이 */
+.camera-overlay {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 1.5rem;
+}
+
+/* 기존 bi-person-fill 색상 유지 */
+.default-icon { font-size: 3rem; color: #2F65F6; }
+
 .username { font-size: 1.5rem; font-weight: 800; margin-bottom: 5px; }
 .user-badge { background: #eef4ff; color: #2F65F6; font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; font-weight: 700; }
 .email { color: #888; font-size: 0.95rem; margin-top: 10px; }

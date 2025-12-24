@@ -20,6 +20,37 @@
         </div>
 
         <div class="form-group">
+          <label for="nickname">닉네임</label>
+          <input 
+            type="text" 
+            id="nickname" 
+            v-model.trim="nickname" 
+            placeholder="커뮤니티에서 사용할 닉네임"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label>성별</label>
+          <div class="gender-group">
+            <input type="radio" id="male" value="M" v-model="gender">
+            <label for="male">남성</label>
+            <input type="radio" id="female" value="F" v-model="gender">
+            <label for="female">여성</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="birthDate">생년월일</label>
+          <input 
+            type="date" 
+            id="birthDate" 
+            v-model="birthDate" 
+            required
+          >
+        </div>
+
+        <div class="form-group">
           <label for="password1">비밀번호</label>
           <input 
             type="password" 
@@ -60,12 +91,24 @@ import { RouterLink } from 'vue-router'
 const accountStore = useAccountStore()
 
 const username = ref(null)
+const nickname = ref(null)
+const gender = ref('M') // 기본값 남성
+const birthDate = ref(null)
 const password1 = ref(null)
 const password2 = ref(null)
 
 const signUp = function () {
+  // 비밀번호 일치 확인 로직 추가 가능
+  if (password1.value !== password2.value) {
+    alert('비밀번호가 일치하지 않습니다.')
+    return
+  }
+
   const payload = {
     username: username.value,
+    nickname: nickname.value,
+    gender: gender.value,
+    birth_date: birthDate.value,
     password1: password1.value,
     password2: password2.value,
   }
@@ -74,7 +117,7 @@ const signUp = function () {
 </script>
 
 <style scoped>
-/* LogInView와 동일한 스타일 적용 (통일감 유지) */
+/* 기존 스타일 유지 + 성별 라디오 버튼 스타일 추가 */
 .auth-container {
   flex: 1;
   display: flex;
@@ -115,13 +158,13 @@ const signUp = function () {
   color: #666;
   font-size: 14px;
   margin-bottom: 30px;
-  word-break: keep-all; /* 단어 단위 줄바꿈 */
+  word-break: keep-all;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 18px; /* 간격 미세 조정 */
+  gap: 15px;
   margin-bottom: 25px;
 }
 
@@ -153,6 +196,21 @@ const signUp = function () {
   box-shadow: 0 0 0 3px rgba(47, 101, 246, 0.1);
 }
 
+/* 성별 라디오 버튼 그룹 */
+.gender-group {
+  display: flex;
+  gap: 20px;
+  padding: 10px 0;
+}
+.gender-group input[type="radio"] {
+  width: auto;
+}
+.gender-group label {
+  margin-bottom: 0;
+  cursor: pointer;
+  font-weight: 400;
+}
+
 .submit-btn {
   width: 100%;
   padding: 14px;
@@ -178,7 +236,6 @@ const signUp = function () {
   justify-content: center;
   align-items: center;
   gap: 10px;
-  /* padding-top: 5px; */
 }
 
 .card-footer p {
