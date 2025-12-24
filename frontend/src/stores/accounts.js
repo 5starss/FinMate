@@ -73,6 +73,7 @@ export const useAccountStore = defineStore('account', () => {
   }
 
   return {
+    API_URL,
     signUp,
     logIn,
     token,

@@ -302,7 +302,7 @@ const confirmUnsubscribe = async () => {
       const typePath = selectedProduct.value.type === 'deposit' ? 'deposits' : 'savings'
       // URL 경로 주의: /financial/deposit-products/unsubscribe/... 등 백엔드 URL에 맞게 수정 필요
       // 여기서는 사용자가 제공한 코드의 패턴을 따름
-      await axios.delete(`${API_URL}/financial/${typePath}/unsubscribe/${selectedProduct.value.id}/`, {
+      await axios.delete(`${API_URL}/products/${typePath}/unsubscribe/${selectedProduct.value.id}/`, {
         headers: { Authorization: `Token ${accountStore.token}` }
       })
       alert('해지되었습니다.')

@@ -1,175 +1,166 @@
 <template>
-  <div class="container mt-4 pb-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="fw-bold mb-0"><i class="bi bi-wallet2 text-primary"></i> 나의 가계부</h2>
-      <div class="d-flex align-items-center bg-white shadow-sm rounded-pill px-3 py-1">
-        <button @click="changeMonth(-1)" class="btn btn-link text-dark p-1"><i class="bi bi-chevron-left"></i></button>
-        <span class="fw-bold mx-3 fs-5">{{ currentYear }}년 {{ currentMonth }}월</span>
-        <button @click="changeMonth(1)" class="btn btn-link text-dark p-1"><i class="bi bi-chevron-right"></i></button>
-        <button @click="resetToToday" class="btn btn-sm btn-outline-primary ms-2 rounded-pill">오늘</button>
+  <div class="view-container">
+    <div class="header-section animate-fade-in">
+      <h2 class="page-title"><i class="bi bi-wallet2 text-primary"></i> 나의 가계부</h2>
+      <div class="date-controller">
+        <button @click="changeMonth(-1)" class="nav-btn">&lt;</button> 
+        <span class="current-date">{{ currentYear }}년 {{ currentMonth }}월</span>
+        <button @click="changeMonth(1)" class="nav-btn">&gt;</button>
+        <button @click="resetToToday" class="today-btn">Today</button>
       </div>
     </div>
 
-    <div class="row g-3 mb-4">
-      <div class="col-md-4">
-        <div class="card border-0 shadow-sm bg-success text-white">
-          <div class="card-body p-4">
-            <h6 class="small opacity-75 fw-bold">이달의 수입</h6>
-            <h2 class="fw-bold mb-0">+ {{ formatPrice(totalIncome) }}원</h2>
-          </div>
+    <div class="stats-grid animate-slide-up">
+      <div class="stat-card income">
+        <div class="icon-circle bg-green"><i class="bi bi-arrow-down-left"></i></div>
+        <div class="text-group">
+          <span class="label">이달의 수입</span>
+          <h3 class="amount text-green">+ {{ formatPrice(totalIncome) }}원</h3>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card border-0 shadow-sm bg-danger text-white">
-          <div class="card-body p-4">
-            <h6 class="small opacity-75 fw-bold">이달의 지출</h6>
-            <h2 class="fw-bold mb-0">- {{ formatPrice(totalExpense) }}원</h2>
-          </div>
+      <div class="stat-card expense">
+        <div class="icon-circle bg-red"><i class="bi bi-arrow-up-right"></i></div>
+        <div class="text-group">
+          <span class="label">이달의 지출</span>
+          <h3 class="amount text-red">- {{ formatPrice(totalExpense) }}원</h3>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card border-0 shadow-sm bg-primary text-white">
-          <div class="card-body p-4">
-            <h6 class="small opacity-75 fw-bold">현재 잔액</h6>
-            <h2 class="fw-bold mb-0">{{ formatPrice(totalBalance) }}원</h2>
-          </div>
+      <div class="stat-card balance">
+        <div class="icon-circle bg-blue"><i class="bi bi-wallet-fill"></i></div>
+        <div class="text-group">
+          <span class="label">현재 잔액</span>
+          <h3 class="amount text-blue">{{ formatPrice(totalBalance) }}원</h3>
         </div>
       </div>
     </div>
 
-    <div class="row g-4">
-      <div class="col-lg-8">
-        <div class="card shadow-sm mb-4 border-0" :class="{ 'border-top border-warning border-4': isEditing }">
-          <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="card-title fw-bold mb-0">
-                {{ isEditing ? '내역 수정하기' : '내역 기록하기' }}
-                <span v-if="isEditing" class="badge bg-warning text-dark ms-2 small">수정 모드</span>
-              </h5>
-              <div class="btn-group btn-group-sm">
-                <input type="radio" class="btn-check" name="type" id="type_expense" value="EXPENSE" v-model="transactionType" @change="onTypeChange">
-                <label class="btn btn-outline-danger" for="type_expense">지출</label>
-                <input type="radio" class="btn-check" name="type" id="type_income" value="INCOME" v-model="transactionType" @change="onTypeChange">
-                <label class="btn btn-outline-success" for="type_income">수입</label>
-              </div>
+    <div class="content-grid">
+      <div class="left-column animate-slide-up delay-1">
+        
+        <div class="input-card" :class="{ 'edit-mode': isEditing }">
+          <div class="card-header-custom">
+            <h5 class="card-title">
+              {{ isEditing ? '✏️ 내역 수정하기' : '📝 새 내역 쓰기' }}
+            </h5>
+            <div class="type-toggle">
+              <label class="toggle-btn" :class="{ active: transactionType === 'EXPENSE' }">
+                <input type="radio" value="EXPENSE" v-model="transactionType" @change="onTypeChange"> 지출
+              </label>
+              <label class="toggle-btn" :class="{ active: transactionType === 'INCOME' }">
+                <input type="radio" value="INCOME" v-model="transactionType" @change="onTypeChange"> 수입
+              </label>
             </div>
+          </div>
 
-            <form @submit.prevent="handleSaveTransaction" class="row g-2">
-              <div class="col-md-2">
-                <input type="date" v-model="newTransaction.date" class="form-control" required>
+          <form @submit.prevent="handleSaveTransaction" class="transaction-form">
+            <div class="form-row">
+              <div class="input-group date-group">
+                <label>날짜</label>
+                <input type="date" v-model="newTransaction.date" required>
               </div>
-              
-              <div class="col-md-3 d-flex align-items-center gap-1">
-                <select v-model="selectedCategoryId" class="form-select" required>
-                  <option value="" disabled>카테고리 선택</option>
-                  <option v-for="cat in store.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-                  <option value="new">+ 직접 입력</option>
-                </select>
-                <button 
-                  v-if="selectedCategoryId && selectedCategoryId !== 'new'" 
-                  type="button" 
-                  @click.stop="deleteCategory(selectedCategoryId)" 
-                  class="btn btn-sm btn-outline-danger border-0 p-1"
-                  title="카테고리 삭제"
-                >
-                  <i class="bi bi-x-circle"></i>
-                </button>
-              </div>
-
-              <div v-if="selectedCategoryId === 'new'" class="col-md-3">
-                <input type="text" v-model="customCategoryName" class="form-control border-primary" placeholder="카테고리명 입력" required>
-              </div>
-
-              <div :class="selectedCategoryId === 'new' ? 'col-md-2' : 'col-md-3'">
-                <input type="text" v-model="newTransaction.title" class="form-control" placeholder="내역(예: 점심)" required>
-              </div>
-              <div :class="selectedCategoryId === 'new' ? 'col-md-2' : 'col-md-4'">
-                <div class="input-group">
-                  <input type="number" v-model="newTransaction.amount" class="form-control" placeholder="금액" required>
-                  <button type="submit" class="btn fw-bold px-3" :class="isEditing ? 'btn-warning' : 'btn-primary'">
-                    {{ isEditing ? '수정' : '추가' }}
-                  </button>
-                  <button v-if="isEditing" type="button" @click="cancelEdit" class="btn btn-outline-secondary">
-                    취소
+              <div class="input-group category-group">
+                <label>카테고리</label>
+                <div class="select-wrapper">
+                  <select v-model="selectedCategoryId" required>
+                    <option value="" disabled>선택</option>
+                    <option v-for="cat in store.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                    <option value="new">+ 직접 입력</option>
+                  </select>
+                  <button 
+                    v-if="selectedCategoryId && selectedCategoryId !== 'new'" 
+                    type="button" 
+                    @click.stop="deleteCategory(selectedCategoryId)" 
+                    class="del-cat-btn"
+                  >
+                    <i class="bi bi-x"></i>
                   </button>
                 </div>
               </div>
-              <div class="col-12 mt-2">
-                <input type="text" v-model="newTransaction.memo" class="form-control form-control-sm" placeholder="메모를 입력하세요 (선택)">
+            </div>
+
+            <div v-if="selectedCategoryId === 'new'" class="form-row">
+              <input type="text" v-model="customCategoryName" class="full-input" placeholder="새 카테고리 이름 입력" required>
+            </div>
+
+            <div class="form-row">
+              <div class="input-group title-group">
+                <input type="text" v-model="newTransaction.title" placeholder="내역 (예: 점심 식사)" required>
               </div>
-            </form>
-          </div>
+              <div class="input-group amount-group">
+                <input type="number" v-model="newTransaction.amount" placeholder="금액" required>
+                <span class="unit">원</span>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <input type="text" v-model="newTransaction.memo" class="full-input" placeholder="메모 (선택사항)">
+            </div>
+
+            <div class="form-actions">
+              <button v-if="isEditing" type="button" @click="cancelEdit" class="cancel-btn">취소</button>
+              <button type="submit" class="submit-btn" :class="isEditing ? 'edit' : 'save'">
+                {{ isEditing ? '수정 완료' : '등록하기' }}
+              </button>
+            </div>
+          </form>
         </div>
 
-        <div class="card shadow-sm border-0">
-          <div class="card-header bg-white border-0 pt-4 px-4">
-            <h5 class="fw-bold mb-0">상세 내역 <span class="badge bg-secondary ms-2 small">{{ filteredTransactions.length }}건</span></h5>
+        <div class="list-card">
+          <div class="list-header">
+            <h5>상세 내역 <span class="count-badge">{{ filteredTransactions.length }}</span></h5>
           </div>
-          <div class="card-body px-0">
-            <div v-if="filteredTransactions.length > 0" class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th class="ps-4">날짜</th>
-                    <th>카테고리</th>
-                    <th>내역</th>
-                    <th class="text-end">금액</th>
-                    <th class="text-center">삭제</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="item in filteredTransactions" 
-                      :key="item.id" 
-                      @click="startEdit(item)" 
-                      style="cursor: pointer;" 
-                      title="클릭하여 수정">
-                    <td class="ps-4 text-muted small">{{ item.date }}</td>
-                    <td>
-                      <span :class="item.category_type === 'INCOME' ? 'badge bg-success-subtle text-success' : 'badge bg-danger-subtle text-danger'">
-                        {{ item.category_name }}
-                      </span>
-                    </td>
-                    <td class="fw-semibold">
-                      {{ item.title }}
-                      <div v-if="item.memo" class="small text-muted fw-normal">{{ item.memo }}</div>
-                    </td>
-                    <td :class="item.category_type === 'INCOME' ? 'text-success text-end fw-bold' : 'text-danger text-end fw-bold'">
-                      {{ item.category_type === 'INCOME' ? '+' : '-' }} {{ formatPrice(item.amount) }}
-                    </td>
-                    <td class="text-center">
-                      <button @click.stop="confirmDelete(item.id)" class="btn btn-sm btn-link text-muted p-0">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+          
+          <div v-if="filteredTransactions.length > 0" class="transaction-list">
+            <div 
+              v-for="item in filteredTransactions" 
+              :key="item.id" 
+              class="list-item"
+              @click="startEdit(item)"
+            >
+              <div class="item-date">
+                <span class="day">{{ item.date.slice(8, 10) }}</span>
+                <span class="month-sm">{{ item.date.slice(5, 7) }}월</span>
+              </div>
+              <div class="item-info">
+                <div class="info-top">
+                  <span class="cat-badge" :class="item.category_type === 'INCOME' ? 'income' : 'expense'">
+                    {{ getCategoryName(item) }}
+                  </span>
+                  <span class="item-title">{{ item.title }}</span>
+                </div>
+                <div v-if="item.memo" class="item-memo">{{ item.memo }}</div>
+              </div>
+              <div class="item-amount" :class="item.category_type === 'INCOME' ? 'text-green' : 'text-red'">
+                {{ item.category_type === 'INCOME' ? '+' : '-' }} {{ formatPrice(item.amount) }}
+              </div>
+              <button @click.stop="confirmDelete(item.id)" class="item-del-btn">
+                <i class="bi bi-trash"></i>
+              </button>
             </div>
-            <div v-else class="text-center py-5">
-              <i class="bi bi-inbox fs-1 text-light"></i>
-              <p class="text-muted mt-2">이달에 기록된 내역이 없습니다.</p>
-            </div>
+          </div>
+
+          <div v-else class="empty-state">
+            <i class="bi bi-receipt"></i>
+            <p>이달의 내역이 없습니다.</p>
           </div>
         </div>
       </div>
 
-      <div class="col-lg-4">
-        <div class="card shadow-sm border-0 h-100">
-          <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-              <h5 class="fw-bold mb-0">{{ chartMode === 'EXPENSE' ? '지출' : '수입' }} 분석</h5>
-              <button @click="toggleChartMode" class="btn btn-sm btn-outline-secondary">
-                {{ chartMode === 'EXPENSE' ? '수입' : '지출' }} 보기
-              </button>
-            </div>
-            
-            <div v-if="hasChartData" class="chart-container">
-              <Pie :data="chartData" :options="chartOptions" />
-            </div>
-            <div v-else class="h-100 d-flex flex-column align-items-center justify-content-center text-muted py-5">
-              <i class="bi bi-bar-chart fs-1 mb-2"></i>
-              데이터가 없습니다.
-            </div>
+      <div class="right-column animate-slide-up delay-2">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h5>{{ chartMode === 'EXPENSE' ? '지출' : '수입' }} 분석</h5>
+            <button @click="toggleChartMode" class="chart-toggle-btn">
+              {{ chartMode === 'EXPENSE' ? '수입 보기' : '지출 보기' }}
+            </button>
+          </div>
+          
+          <div v-if="hasChartData" class="chart-wrapper">
+            <Pie :data="chartData" :options="chartOptions" />
+          </div>
+          <div v-else class="empty-chart">
+            <i class="bi bi-pie-chart"></i>
+            <p>분석할 데이터가 없습니다.</p>
           </div>
         </div>
       </div>
@@ -178,11 +169,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useLedgerStore } from '@/stores/ledgers'
 import { Pie } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 
+// [중요] Chart.js 컴포넌트 등록
 ChartJS.register(ArcElement, Tooltip, Legend)
 
 const store = useLedgerStore()
@@ -192,11 +184,9 @@ const viewDate = ref(new Date())
 const currentYear = computed(() => viewDate.value.getFullYear())
 const currentMonth = computed(() => viewDate.value.getMonth() + 1)
 
-// 수정 모드 상태
 const isEditing = ref(false)
 const editingId = ref(null)
 
-// 입력 필드 상태
 const transactionType = ref('EXPENSE')
 const selectedCategoryId = ref('')
 const customCategoryName = ref('')
@@ -209,25 +199,105 @@ const newTransaction = ref({
   memo: ''
 })
 
-// --- 초기화 ---
 onMounted(async () => {
   await store.getTransactions()
   await store.getCategories(transactionType.value)
 })
 
-// --- 핵심 로직 ---
+// [추가] 카테고리 이름을 안전하게 가져오는 헬퍼 함수
+// 백엔드에서 category_name을 안 보내주거나, category(ID)만 있을 경우 대비
+const getCategoryName = (item) => {
+  if (item.category_name) return item.category_name
+  const cat = store.categories.find(c => c.id === item.category)
+  return cat ? cat.name : '기타'
+}
 
-// 1. 내역 클릭 시 수정 모드로 전환
+// --- 차트 데이터 로직 (수정됨) ---
+const filteredTransactions = computed(() => {
+  return store.transactions.filter(item => {
+    const itemDate = new Date(item.date)
+    return itemDate.getFullYear() === currentYear.value && 
+           itemDate.getMonth() + 1 === currentMonth.value
+  }).sort((a, b) => new Date(b.date) - new Date(a.date))
+})
+
+// 차트 데이터 유무 확인
+const hasChartData = computed(() => {
+  const items = filteredTransactions.value.filter(t => t.category_type === chartMode.value)
+  return items.length > 0 && items.reduce((acc, cur) => acc + cur.amount, 0) > 0
+})
+
+const chartData = computed(() => {
+  const items = filteredTransactions.value.filter(t => t.category_type === chartMode.value)
+  
+  // 카테고리별 합계 계산
+  const categorySums = {}
+  items.forEach(item => {
+    // 안전한 이름 가져오기
+    const name = getCategoryName(item)
+    categorySums[name] = (categorySums[name] || 0) + item.amount
+  })
+  
+  // 데이터 정렬 (금액 큰 순서)
+  const sortedEntries = Object.entries(categorySums).sort((a, b) => b[1] - a[1])
+  
+  return {
+    labels: sortedEntries.map(e => e[0]),
+    datasets: [{
+      backgroundColor: chartMode.value === 'EXPENSE' 
+        ? ['#ff6b6b', '#ff9f43', '#feca57', '#48dbfb', '#5f27cd', '#ff9ff3', '#54a0ff']
+        : ['#1dd1a1', '#10ac84', '#00d2d3', '#222f3e', '#576574', '#8395a7'],
+      data: sortedEntries.map(e => e[1]),
+      hoverOffset: 4
+    }]
+  }
+})
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: {
+        usePointStyle: true,
+        padding: 20,
+        font: { size: 12 }
+      }
+    },
+    tooltip: {
+      callbacks: {
+        label: function(context) {
+          let label = context.label || '';
+          if (label) {
+            label += ': ';
+          }
+          if (context.parsed !== null) {
+            label += new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(context.parsed);
+          }
+          return label;
+        }
+      }
+    }
+  }
+}
+
+// --- 기타 로직 (기존 유지) ---
+const totalIncome = computed(() => filteredTransactions.value
+  .filter(t => t.category_type === 'INCOME').reduce((acc, cur) => acc + cur.amount, 0))
+
+const totalExpense = computed(() => filteredTransactions.value
+  .filter(t => t.category_type === 'EXPENSE').reduce((acc, cur) => acc + cur.amount, 0))
+
+const totalBalance = computed(() => totalIncome.value - totalExpense.value)
+
 const startEdit = (item) => {
   isEditing.value = true
   editingId.value = item.id
   transactionType.value = item.category_type
-  
-  // 타입에 맞는 카테고리 목록 불러온 후 ID 바인딩
   store.getCategories(item.category_type).then(() => {
     selectedCategoryId.value = item.category
   })
-
   newTransaction.value = {
     date: item.date,
     title: item.title,
@@ -237,7 +307,6 @@ const startEdit = (item) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// 2. 수정 취소 및 폼 리셋
 const cancelEdit = () => {
   isEditing.value = false
   editingId.value = null
@@ -255,18 +324,16 @@ const resetForm = () => {
   customCategoryName.value = ''
 }
 
-// 3. 수입/지출 타입 변경 시
 const onTypeChange = () => {
   selectedCategoryId.value = ''
   store.getCategories(transactionType.value)
+  // 차트 모드도 같이 변경해주면 사용자 경험이 좋음 (선택사항)
+  // chartMode.value = transactionType.value 
 }
 
-// 4. 저장 (생성/수정 통합)
 const handleSaveTransaction = async () => {
   try {
     let finalCategoryId = selectedCategoryId.value
-
-    // 직접 입력 카테고리 처리
     if (selectedCategoryId.value === 'new') {
       const newCat = await store.createCategory({
         name: customCategoryName.value,
@@ -280,7 +347,7 @@ const handleSaveTransaction = async () => {
         ...newTransaction.value,
         category: finalCategoryId
       })
-      alert('성공적으로 수정되었습니다.')
+      alert('수정되었습니다.')
     } else {
       await store.createTransaction({
         ...newTransaction.value,
@@ -289,78 +356,28 @@ const handleSaveTransaction = async () => {
     }
     cancelEdit()
   } catch (err) {
-    if (err.response?.status === 400) {
-      alert('중복된 카테고리명이거나 입력값이 올바르지 않습니다.')
-    } else {
-      alert('처리에 실패했습니다.')
-    }
+    console.error(err)
+    alert('저장 중 오류가 발생했습니다. 입력값을 확인해주세요.')
   }
 }
 
-// 5. 삭제 로직들
 const confirmDelete = async (id) => {
-  if (confirm('정말 삭제하시겠습니까?')) {
-    await store.deleteTransaction(id)
-  }
+  if (confirm('삭제하시겠습니까?')) await store.deleteTransaction(id)
 }
 
 const deleteCategory = async (catId) => {
-  if (confirm('이 카테고리를 삭제하시겠습니까?\n(공통 카테고리나 사용 중인 카테고리는 삭제가 제한될 수 있습니다.)')) {
+  if (confirm('이 카테고리를 삭제하시겠습니까?')) {
     try {
       await store.deleteCategory(catId)
       selectedCategoryId.value = ''
-    } catch (err) {
-      alert('삭제할 수 없는 카테고리입니다.')
+    } catch (err) { 
+      alert('삭제할 수 없는 카테고리입니다.') 
     }
   }
 }
 
-// --- 기타 UI 로직 ---
 const toggleChartMode = () => {
   chartMode.value = chartMode.value === 'EXPENSE' ? 'INCOME' : 'EXPENSE'
-}
-
-const filteredTransactions = computed(() => {
-  return store.transactions.filter(item => {
-    const itemDate = new Date(item.date)
-    return itemDate.getFullYear() === currentYear.value && 
-           itemDate.getMonth() + 1 === currentMonth.value
-  })
-})
-
-const totalIncome = computed(() => filteredTransactions.value
-  .filter(t => t.category_type === 'INCOME').reduce((acc, cur) => acc + cur.amount, 0))
-
-const totalExpense = computed(() => filteredTransactions.value
-  .filter(t => t.category_type === 'EXPENSE').reduce((acc, cur) => acc + cur.amount, 0))
-
-const totalBalance = computed(() => totalIncome.value - totalExpense.value)
-
-const hasChartData = computed(() => {
-  return filteredTransactions.value.some(t => t.category_type === chartMode.value)
-})
-
-const chartData = computed(() => {
-  const items = filteredTransactions.value.filter(t => t.category_type === chartMode.value)
-  const categorySums = {}
-  items.forEach(item => {
-    categorySums[item.category_name] = (categorySums[item.category_name] || 0) + item.amount
-  })
-  return {
-    labels: Object.keys(categorySums),
-    datasets: [{
-      backgroundColor: chartMode.value === 'EXPENSE' 
-        ? ['#FF6384', '#FF9F40', '#FFCE56', '#4BC0C0', '#9966FF']
-        : ['#28a745', '#20c997', '#17a2b8', '#343a40', '#6c757d'],
-      data: Object.values(categorySums)
-    }]
-  }
-})
-
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { position: 'bottom' } }
 }
 
 const changeMonth = (delta) => {
@@ -373,11 +390,217 @@ const formatPrice = (value) => value?.toLocaleString() || 0
 </script>
 
 <style scoped>
-.chart-container { height: 300px; position: relative; }
-.btn-check:checked + .btn-outline-danger { background-color: #dc3545; color: white; }
-.btn-check:checked + .btn-outline-success { background-color: #28a745; color: white; }
-.bg-success-subtle { background-color: #e8f5e9; color: #2e7d32; }
-.bg-danger-subtle { background-color: #ffebee; color: #c62828; }
-/* 수정 모드 시 행 하이라이트 효과 */
-.table-hover tbody tr:active { background-color: #fff3cd; }
+/* 애니메이션 */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fadeIn 0.8s ease-out; }
+.animate-slide-up { animation: slideUp 0.8s ease-out forwards; opacity: 0; }
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+
+.view-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; min-height: 800px; }
+
+/* 헤더 */
+.header-section { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 30px; 
+}
+
+.page-title { 
+  font-size: 1.8rem; 
+  font-weight: 800; 
+  color: #333; 
+  margin: 0; 
+}
+
+/* 날짜 컨트롤러 박스 */
+.date-controller { 
+  display: flex; 
+  align-items: center; 
+  background: white; 
+  padding: 8px 20px; 
+  border-radius: 50px; 
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+  border: 1px solid #f8f9fa;
+}
+
+/* [수정] 텍스트 화살표 스타일 */
+.nav-btn { 
+  background: none; 
+  border: none;     
+  
+  /* 텍스트 기호를 아이콘처럼 보이게 설정 */
+  font-family: sans-serif; /* 고딕 계열 폰트 */
+  font-size: 1.5rem;       /* 크기 키움 */
+  font-weight: 300;        /* 얇게 해서 세련되게 */
+  line-height: 1;
+  padding-bottom: 3px;     /* 높이 미세 조정 */
+  
+  color: #adb5bd;    
+  cursor: pointer; 
+  padding: 0 15px;   
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.nav-btn:hover { 
+  color: #2F65F6; /* 호버 시 파란색 */
+  transform: scale(1.2); 
+  font-weight: 700; /* 호버 시 두껍게 */
+}
+
+.current-date { 
+  font-size: 1.3rem; 
+  font-weight: 800; 
+  margin: 0 5px; 
+  color: #333; 
+  width: 140px; 
+  text-align: center; 
+  user-select: none; 
+}
+
+.today-btn { 
+  background: #f1f3f5; 
+  color: #666; 
+  border: none; 
+  padding: 6px 14px; 
+  border-radius: 20px; 
+  font-size: 0.8rem; 
+  font-weight: 700; 
+  cursor: pointer; 
+  margin-left: 10px; 
+  transition: all 0.2s;
+}
+
+.today-btn:hover {
+  background: #2F65F6; 
+  color: white;
+}
+
+/* 1. 상단 통계 카드 */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+.stat-card { background: white; border-radius: 20px; padding: 25px; display: flex; align-items: center; gap: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; }
+.icon-circle { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+.bg-green { background: #e8f5e9; color: #198754; }
+.bg-red { background: #ffebee; color: #e53935; }
+.bg-blue { background: #e3f2fd; color: #0288d1; }
+.text-group { display: flex; flex-direction: column; }
+.label { font-size: 0.85rem; color: #888; font-weight: 600; margin-bottom: 5px; }
+.amount { font-size: 1.5rem; font-weight: 800; margin: 0; }
+.text-green { color: #198754; }
+.text-red { color: #e53935; }
+.text-blue { color: #333; }
+
+/* [핵심 수정] 레이아웃 그리드 고정 */
+.content-grid { 
+  display: grid; 
+  /* minmax(0, 2fr)을 사용하여 내부 컨텐츠가 넘칠 때 그리드가 깨지는 것을 방지 */
+  grid-template-columns: minmax(0, 2fr) minmax(350px, 1fr); 
+  gap: 25px; 
+  align-items: start; 
+}
+
+/* 2. 입력 폼 & 리스트 (왼쪽) */
+.input-card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); margin-bottom: 25px; border: 2px solid transparent; transition: border-color 0.3s; }
+.input-card.edit-mode { border-color: #ffca28; background: #fffdf5; }
+
+.card-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.card-title { font-size: 1.2rem; font-weight: 800; color: #333; margin: 0; }
+.type-toggle { background: #f1f3f5; padding: 4px; border-radius: 12px; display: flex; }
+.toggle-btn { padding: 6px 15px; border-radius: 8px; font-size: 0.9rem; font-weight: 700; color: #888; cursor: pointer; transition: 0.2s; }
+.toggle-btn.active { background: white; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.toggle-btn input { display: none; }
+
+.transaction-form .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+.input-group { flex: 1; display: flex; flex-direction: column; }
+.input-group label { font-size: 0.8rem; font-weight: 700; color: #666; margin-bottom: 5px; }
+.input-group input, .select-wrapper select { width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 10px; font-size: 0.95rem; outline: none; }
+.input-group input:focus, .select-wrapper select:focus { border-color: #2F65F6; }
+.select-wrapper { position: relative; }
+.del-cat-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ff6b6b; font-size: 1.2rem; cursor: pointer; }
+.unit { margin-left: 10px; align-self: center; font-weight: 700; color: #555; }
+.full-input { width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 10px; }
+
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+.submit-btn { background: #2F65F6; color: white; border: none; padding: 12px 30px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+.submit-btn:hover { background: #1c50d8; }
+.submit-btn.edit { background: #ffa000; }
+.cancel-btn { background: #eee; color: #555; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+
+/* 내역 리스트 */
+.list-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); }
+.list-header { margin-bottom: 20px; }
+.list-header h5 { font-weight: 800; font-size: 1.1rem; }
+.count-badge { background: #eee; color: #555; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; margin-left: 5px; }
+
+.transaction-list { display: flex; flex-direction: column; gap: 10px; }
+.list-item { display: flex; align-items: center; padding: 15px; border-radius: 15px; background: #fcfcfc; border: 1px solid #f0f0f0; cursor: pointer; transition: all 0.2s; }
+.list-item:hover { transform: translateX(5px); background: #f8fbff; border-color: #eef4ff; }
+
+.item-date { display: flex; flex-direction: column; align-items: center; margin-right: 15px; min-width: 40px; }
+.item-date .day { font-size: 1.1rem; font-weight: 800; color: #333; }
+.item-date .month-sm { font-size: 0.7rem; color: #999; }
+
+.item-info { flex: 1; display: flex; flex-direction: column; }
+.info-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.cat-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+.cat-badge.income { background: #e8f5e9; color: #198754; }
+.cat-badge.expense { background: #ffebee; color: #e53935; }
+.item-title { font-weight: 700; color: #333; font-size: 0.95rem; }
+.item-memo { font-size: 0.8rem; color: #888; }
+.item-amount { font-weight: 800; font-size: 1.1rem; margin-right: 15px; }
+.item-del-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1.1rem; }
+.item-del-btn:hover { color: #ff6b6b; }
+.empty-state { text-align: center; padding: 40px 0; color: #888; }
+.empty-state i { font-size: 2rem; margin-bottom: 10px; display: block; }
+
+/* 3. 차트 영역 (수정됨) */
+.right-column {
+  position: sticky;
+  top: 100px;
+  /* width: 100%; (삭제 - 그리드에서 제어) */
+}
+
+.chart-card { 
+  background: white; 
+  border-radius: 20px; 
+  padding: 25px; 
+  box-shadow: 0 5px 20px rgba(0,0,0,0.03); 
+  
+  /* [핵심] 높이 고정: 차트가 있든 없든 높이를 강제합니다. */
+  height: 500px; 
+  
+  display: flex; 
+  flex-direction: column; 
+}
+
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.chart-header h5 { font-weight: 800; margin: 0; }
+.chart-toggle-btn { border: 1px solid #ddd; background: white; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; }
+
+/* [핵심] 차트 래퍼: 부모 높이를 꽉 채우도록 설정 */
+.chart-wrapper { 
+  flex: 1; 
+  position: relative; 
+  width: 100%; 
+  overflow: hidden; 
+}
+
+.empty-chart { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ccc; }
+.empty-chart i { font-size: 3rem; margin-bottom: 10px; }
+
+/* 반응형 */
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  
+  /* 모바일에서는 1열로 변경 */
+  .content-grid { grid-template-columns: 1fr; } 
+  
+  .right-column { position: static; } 
+  .chart-card { height: auto; min-height: 400px; } /* 모바일 높이 재조정 */
+  .input-card .form-row { flex-direction: column; gap: 10px; }
+}
 </style>
