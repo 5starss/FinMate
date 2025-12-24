@@ -16,16 +16,20 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+# 아래 두 줄을 추가로 import 하세요
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('products/', include('products.urls')),
     path('accounts/', include('dj_rest_auth.urls')),
     path('accounts/signup/', include('dj_rest_auth.registration.urls')),
-    # 사용자 프로필 관련 URL 추가
     path('accounts/', include('accounts.urls')),
     path('ledgers/', include('ledgers.urls')),
-    # 커뮤니티-게시판 관련 URL 추가
     path('articles/', include('articles.urls')),
-
 ]
+
+# 중요: 개발 환경(DEBUG=True)에서 미디어 파일을 서빙하기 위한 설정
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

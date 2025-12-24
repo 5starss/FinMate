@@ -40,6 +40,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Application definition
 
@@ -172,6 +174,6 @@ AUTH_USER_MODEL = 'accounts.User'
 
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 
-# REST_AUTH = {
-#     'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
-# }
+REST_AUTH = {
+    'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
+}
