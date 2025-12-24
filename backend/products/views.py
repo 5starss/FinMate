@@ -251,7 +251,7 @@ def saving_unsubscribe(request, subscription_id):
     return Response({"message": "적금 가입이 해지되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def recommend_products(request):
     """
     LLM을 활용한 맞춤형 금융 상품 추천 뷰
@@ -300,9 +300,9 @@ def recommend_products(request):
     - 주요 지출 내역: {top_spending_category} (전체 지출의 {spending_ratio}%)
 
     [추천 후보 상품 리스트 (DB 데이터)]
-    1. [ID: 101] 우리은행 WON플러스예금 (금리 3.5%, 12개월)
-    2. [ID: 105] 저축은행 특판 적금 (금리 4.5%, 6개월, 방문 가입 필수)
-    3. [ID: 108] 카카오뱅크 자유적금 (금리 3.0%, 자유적립)
+    1. [ID: 1] 우리은행 WON플러스예금 (금리 3.5%, 12개월)
+    2. [ID: 5] 저축은행 특판 적금 (금리 4.5%, 6개월, 방문 가입 필수)
+    3. [ID: 8] 카카오뱅크 자유적금 (금리 3.0%, 자유적립)
 
     위 후보 중 1개를 선택하고, 추가적인 투자 조언을 해주세요.
 
@@ -310,7 +310,7 @@ def recommend_products(request):
     입력: (25세/사회초년생/여유자금 50만원/안정형)
     출력:
     {{
-        "recommended_product_id": "108",
+        "recommended_product_id": "8",
         "recommendation_reason": "사회초년생이라 목돈 마련이 우선입니다. 자유롭게 납입 가능한 카카오뱅크 적금으로 저축 습관을 기르는 것이 좋습니다.",
         "financial_advice": "현재 식비 지출이 40%로 높습니다. 배달 음식을 줄이면 월 20만 원을 더 저축할 수 있습니다.",
         "additional_category": "CMA 통장 (비상금 관리용)"
