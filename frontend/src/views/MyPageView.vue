@@ -326,7 +326,7 @@ const saveProfile = async () => {
 
     // 새로 선택한 이미지가 있을 때만 formData에 추가
     if (selectedFile.value) {
-      formData.append('image', selectedFile.value)
+      formData.append('profile.image', selectedFile.value)
     }
 
     const res = await axios.put(`${API_URL}/accounts/profile/`, formData, {
