@@ -39,7 +39,7 @@
           <RouterLink :to="{ name: 'MapView' }">지도</RouterLink>
           <RouterLink :to="{ name: 'ChartView' }">현물검색</RouterLink>
           <RouterLink :to="{ name: 'LedgerView' }">가계부</RouterLink>
-          <RouterLink to="/">커뮤니티</RouterLink>
+          <RouterLink :to="{ name: 'ArticleView' }">커뮤니티</RouterLink>
         </nav>
       </div>
     </div>
