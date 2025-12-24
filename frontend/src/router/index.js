@@ -13,6 +13,7 @@ import DepositDetailView from '@/views/DepositDetailView.vue'
 import SavingDetailView from '@/views/SavingDetailView.vue'
 import MyPageView from '@/views/MyPageView.vue' 
 import LedgerView from '@/views/LedgerView.vue' 
+import RecommendView from '@/views/RecommendView.vue'
 
 
 const router = createRouter({
@@ -82,6 +83,11 @@ const router = createRouter({
       path: '/ledger',
       name: 'LedgerView',
       component: LedgerView
+    },
+    {
+      path: '/recommend',
+      name: 'RecommendView',
+      component: RecommendView
     },
   ]
 })
