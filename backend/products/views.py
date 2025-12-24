@@ -9,7 +9,6 @@ import requests, json
 from .models import DepositProducts, DepositOptions, SavingProducts, SavingOptions, DepositSubscription, SavingSubscription
 from .serializers import DepositProductsSerializer, DepositOptionsSerializer, SavingProductsSerializer, SavingOptionsSerializer, DepositProductDetailSerializer, SavingProductDetailSerializer, DepositSubscriptionSerializer, SavingSubscriptionSerializer
 
-
 API_KEY = settings.API_KEY
 
 @api_view(['GET', 'POST'])
@@ -250,3 +249,114 @@ def saving_unsubscribe(request, subscription_id):
     subscription = get_object_or_404(SavingSubscription, id=subscription_id, user=request.user)
     subscription.delete()
     return Response({"message": "적금 가입이 해지되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+def recommend_products(request):
+    """
+    LLM을 활용한 맞춤형 금융 상품 추천 뷰
+    """
+    # SSAFY GMS 엔드포인트 URL (curl 명령어 기준)
+    url = "https://gms.ssafy.io/gmsapi/api.openai.com/v1/chat/completions"
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {settings.OPENAI_API_KEY}"
+    }
+
+    # user = request.user
+
+    dummy_profile = {
+        "age": 28,
+        "gender": "여성",
+        "annual_income": 35000000,
+        "tendency": "안정형",
+        "asset": 5000000,
+        "income": 3000000,
+        "expense": 2500000,
+        "top_spending_category": "식비",
+        "spending_ratio": 40,
+    }
+    age = dummy_profile["age"]
+    gender = dummy_profile["gender"]
+    annual_income = dummy_profile["annual_income"]  
+    tendency = dummy_profile["tendency"]
+    asset = dummy_profile["asset"]
+    income = dummy_profile["income"]
+    expense = dummy_profile["expense"]
+    top_spending_category = dummy_profile["top_spending_category"]
+    spending_ratio = dummy_profile["spending_ratio"]
+
+    user_content = f"""
+    아래 고객 정보를 분석하여 최적의 상품을 추천해주세요.
+
+    [고객 프로필]
+    - 나이: {age}세
+    - 성별: {gender}
+    - 연 소득: {annual_income}원
+    - 투자 성향: {tendency}
+    - 현재 자산: {asset}원
+    - 저축 여력: 월 {income - expense}원 (수입 {income} - 지출 {expense})
+    - 주요 지출 내역: {top_spending_category} (전체 지출의 {spending_ratio}%)
+
+    [추천 후보 상품 리스트 (DB 데이터)]
+    1. [ID: 101] 우리은행 WON플러스예금 (금리 3.5%, 12개월)
+    2. [ID: 105] 저축은행 특판 적금 (금리 4.5%, 6개월, 방문 가입 필수)
+    3. [ID: 108] 카카오뱅크 자유적금 (금리 3.0%, 자유적립)
+
+    위 후보 중 1개를 선택하고, 추가적인 투자 조언을 해주세요.
+
+    [답변 예시]
+    입력: (25세/사회초년생/여유자금 50만원/안정형)
+    출력:
+    {{
+        "recommended_product_id": "108",
+        "recommendation_reason": "사회초년생이라 목돈 마련이 우선입니다. 자유롭게 납입 가능한 카카오뱅크 적금으로 저축 습관을 기르는 것이 좋습니다.",
+        "financial_advice": "현재 식비 지출이 40%로 높습니다. 배달 음식을 줄이면 월 20만 원을 더 저축할 수 있습니다.",
+        "additional_category": "CMA 통장 (비상금 관리용)"
+    }}
+
+    이제 위 형식을 참고하여 실제 답변을 작성해주세요.
+    """
+
+    system_content = """
+    당신은 '`FinMate'의 수석 AI 자산관리사입니다.
+    금융 지식이 부족한 사회초년생부터 전문 투자자까지 다양한 고객에게 최적의 상품을 추천해야 합니다.
+
+    [원칙]
+    1. 분석은 논리적이어야 하며, 반드시 고객이 제공한 '가계부 데이터(수입/지출)'를 근거로 들어야 합니다.
+    2. 말투는 신뢰감 있으면서도 친절한 '해요체'를 사용하세요.
+    3. DB에 있는 상품을 추천할 때는 정확한 상품명을 언급하세요.
+    4. 존재하지 않는 상품을 지어내지 마세요(Hallucination 방지).
+
+    [출력 형식]
+    답변은 반드시 아래 JSON 포맷을 따라주세요:
+    {
+        "recommended_product_id": "추천한 DB 상품의 ID (없으면 null)",
+        "recommendation_reason": "추천 사유 (3문장 이내)",
+        "financial_advice": "가계부 분석을 통한 재무 조언 (소비 습관 개선 제안 등)",
+        "additional_category": "DB 외에 추천하는 투자 상품군 (예: ETF, 리츠)"
+    }
+    """
+
+    data = {
+        "model": "gpt-4.1-mini", 
+        "messages": [
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": user_content}
+        ],
+        "max_tokens": 500,
+        "temperature": 0.3
+    }
+
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response.raise_for_status()
+        result = response.json()
+        raw_recommendation = result['choices'][0]['message']['content']
+        recommendation = json.loads(raw_recommendation)
+
+        return Response({"recommendation": recommendation}, status=status.HTTP_200_OK)
+    
+    except requests.exceptions.RequestException as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
