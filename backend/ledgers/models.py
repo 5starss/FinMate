@@ -4,22 +4,28 @@ from django.conf import settings
 class Category(models.Model):
     INCOME_EXPENSE_CHOICES = [('INCOME', '수입'), ('EXPENSE', '지출')]
     
-    name = models.CharField(max_length=20)
+    # name에 null=False(기본값)와 빈 문자열 방지 로직
+    name = models.CharField(max_length=20) 
     type = models.CharField(max_length=10, choices=INCOME_EXPENSE_CHOICES)
-    
-    # ✅ 추가된 부분: 운영자용(null)과 유저용을 구분합니다.
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
         null=True, 
-        blank=True,
-        related_name='categories'
+        blank=True
     )
 
+    class Meta:
+        # ✅ 동일 유저 내에서 같은 이름+타입의 카테고리 중복 생성 방지
+        # user가 null인 공통 카테고리들 사이에서도 중복 방지
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'type'], 
+                name='unique_user_category'
+            )
+        ]
+
     def __str__(self):
-        # 관리자 페이지에서 구분이 쉽도록 표시
-        owner = "공통" if not self.user else self.user.username
-        return f"[{owner}] [{self.type}] {self.name}"
+        return f"{self.name} ({self.type})"
 
 class Transaction(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transactions')

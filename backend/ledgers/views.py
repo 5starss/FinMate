@@ -34,6 +34,20 @@ def category_list_create(request):
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+# 1. 카테고리 삭제 (내가 만든 것만 삭제 가능)
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def category_detail(request, category_pk):
+    category = get_object_or_404(Category, pk=category_pk)
+    
+    # 공통 카테고리(user=None)는 삭제 불가, 본인 것만 삭제 가능
+    if category.user != request.user:
+        return Response({"detail": "공통 카테고리 또는 타인의 카테고리는 삭제할 수 없습니다."}, 
+                        status=status.HTTP_403_FORBIDDEN)
+    
+    category.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 # 2. 내역 생성 및 전체 목록 조회 (차트 필터링 기능 추가)
 @api_view(['GET', 'POST'])
@@ -59,13 +73,31 @@ def transaction_list_create(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# 3. 가계부 삭제 기능 (유지)
-@api_view(['DELETE'])
+# 3. 가계부 상세 조회, 수정, 삭제 기능 (기존 삭제 전용 함수를 확장)
+@api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def transaction_detail(request, transaction_pk):
+    # (1) 해당 내역이 있는지 확인
     transaction = get_object_or_404(Transaction, pk=transaction_pk)
     
-    if request.user == transaction.user:
+    # (2) 본인 내역인지 권한 확인
+    if transaction.user != request.user:
+        return Response({"detail": "권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN)
+
+    # 상세 조회 (GET)
+    if request.method == 'GET':
+        serializer = TransactionSerializer(transaction)
+        return Response(serializer.data)
+
+    # 수정 (PUT) - 가계부 테이블 수정 기능 대응
+    elif request.method == 'PUT':
+        # partial=True를 주면 제목만 바꾸거나 금액만 바꾸는 '부분 수정'이 가능해집니다.
+        serializer = TransactionSerializer(transaction, data=request.data, partial=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+
+    # 삭제 (DELETE)
+    elif request.method == 'DELETE':
         transaction.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-    return Response(status=status.HTTP_403_FORBIDDEN)
