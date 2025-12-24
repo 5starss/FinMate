@@ -20,4 +20,5 @@ urlpatterns = [
     
     # 5. 유저 페이지용 전체 가입 목록
     path('user-subscriptions/', views.user_all_subscriptions, name='user_all_subscriptions'),
+    path('recommend/', views.recommend_products, name='recommend_products'),
 ]
