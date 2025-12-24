@@ -51,6 +51,22 @@ export const useLedgerStore = defineStore('ledger', () => {
       })
   }
 
+  // ✅ 특정 카테고리 삭제하기 (리뷰 반영)
+  const deleteCategory = function (categoryId) {
+    return axios({
+      method: 'delete',
+      url: `${API_URL}/ledgers/categories/${categoryId}/`,
+      headers: { Authorization: `Token ${accountStore.token}` }
+    })
+      .then(() => {
+        getCategories() // 삭제 후 카테고리 목록 갱신
+      })
+      .catch(err => {
+        alert('이 카테고리를 사용하는 내역이 있어 삭제할 수 없습니다.')
+        console.error(err)
+      })
+  }
+
   // ✅ 3. 내역 목록 가져오기 (차트/필터링용 type 추가)
   const getTransactions = function (type = null) {
     let url = `${API_URL}/ledgers/transactions/`
@@ -90,6 +106,20 @@ export const useLedgerStore = defineStore('ledger', () => {
       })
   }
 
+  // ✅ 특정 내역 수정하기 (PATCH/PUT)
+  const updateTransaction = function (transactionId, payload) {
+    return axios({
+      method: 'put',
+      url: `${API_URL}/ledgers/transactions/${transactionId}/`,
+      data: payload,
+      headers: { Authorization: `Token ${accountStore.token}` }
+    })
+      .then(res => {
+        getTransactions() // 수정 후 목록 갱신
+        return res.data
+      })
+  }
+
   // ✅ 5. 삭제 기능
   const deleteTransaction = function (transactionId) {
     return axios({
@@ -109,9 +139,11 @@ export const useLedgerStore = defineStore('ledger', () => {
     transactions, 
     categories, 
     getCategories, 
-    createCategory, // 추가됨
+    createCategory,
     getTransactions, 
     createTransaction,
-    deleteTransaction
+    deleteTransaction,
+    updateTransaction,
+    deleteCategory,
   }
 }, { persist: true })

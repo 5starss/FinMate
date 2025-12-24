@@ -39,10 +39,13 @@
 
     <div class="row g-4">
       <div class="col-lg-8">
-        <div class="card shadow-sm mb-4 border-0">
+        <div class="card shadow-sm mb-4 border-0" :class="{ 'border-top border-warning border-4': isEditing }">
           <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="card-title fw-bold mb-0">내역 기록하기</h5>
+              <h5 class="card-title fw-bold mb-0">
+                {{ isEditing ? '내역 수정하기' : '내역 기록하기' }}
+                <span v-if="isEditing" class="badge bg-warning text-dark ms-2 small">수정 모드</span>
+              </h5>
               <div class="btn-group btn-group-sm">
                 <input type="radio" class="btn-check" name="type" id="type_expense" value="EXPENSE" v-model="transactionType" @change="onTypeChange">
                 <label class="btn btn-outline-danger" for="type_expense">지출</label>
@@ -51,17 +54,26 @@
               </div>
             </div>
 
-            <form @submit.prevent="handleCreateTransaction" class="row g-2">
+            <form @submit.prevent="handleSaveTransaction" class="row g-2">
               <div class="col-md-2">
                 <input type="date" v-model="newTransaction.date" class="form-control" required>
               </div>
               
-              <div class="col-md-3">
+              <div class="col-md-3 d-flex align-items-center gap-1">
                 <select v-model="selectedCategoryId" class="form-select" required>
                   <option value="" disabled>카테고리 선택</option>
                   <option v-for="cat in store.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                   <option value="new">+ 직접 입력</option>
                 </select>
+                <button 
+                  v-if="selectedCategoryId && selectedCategoryId !== 'new'" 
+                  type="button" 
+                  @click.stop="deleteCategory(selectedCategoryId)" 
+                  class="btn btn-sm btn-outline-danger border-0 p-1"
+                  title="카테고리 삭제"
+                >
+                  <i class="bi bi-x-circle"></i>
+                </button>
               </div>
 
               <div v-if="selectedCategoryId === 'new'" class="col-md-3">
@@ -74,7 +86,12 @@
               <div :class="selectedCategoryId === 'new' ? 'col-md-2' : 'col-md-4'">
                 <div class="input-group">
                   <input type="number" v-model="newTransaction.amount" class="form-control" placeholder="금액" required>
-                  <button type="submit" class="btn btn-primary fw-bold px-3">추가</button>
+                  <button type="submit" class="btn fw-bold px-3" :class="isEditing ? 'btn-warning' : 'btn-primary'">
+                    {{ isEditing ? '수정' : '추가' }}
+                  </button>
+                  <button v-if="isEditing" type="button" @click="cancelEdit" class="btn btn-outline-secondary">
+                    취소
+                  </button>
                 </div>
               </div>
               <div class="col-12 mt-2">
@@ -101,7 +118,11 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="item in filteredTransactions" :key="item.id">
+                  <tr v-for="item in filteredTransactions" 
+                      :key="item.id" 
+                      @click="startEdit(item)" 
+                      style="cursor: pointer;" 
+                      title="클릭하여 수정">
                     <td class="ps-4 text-muted small">{{ item.date }}</td>
                     <td>
                       <span :class="item.category_type === 'INCOME' ? 'badge bg-success-subtle text-success' : 'badge bg-danger-subtle text-danger'">
@@ -116,7 +137,9 @@
                       {{ item.category_type === 'INCOME' ? '+' : '-' }} {{ formatPrice(item.amount) }}
                     </td>
                     <td class="text-center">
-                      <button @click="confirmDelete(item.id)" class="btn btn-sm btn-link text-muted p-0"><i class="bi bi-trash"></i></button>
+                      <button @click.stop="confirmDelete(item.id)" class="btn btn-sm btn-link text-muted p-0">
+                        <i class="bi bi-trash"></i>
+                      </button>
                     </td>
                   </tr>
                 </tbody>
@@ -169,11 +192,15 @@ const viewDate = ref(new Date())
 const currentYear = computed(() => viewDate.value.getFullYear())
 const currentMonth = computed(() => viewDate.value.getMonth() + 1)
 
-// 입력 관련 상태
-const transactionType = ref('EXPENSE') // 작성 모드 (수입/지출)
-const selectedCategoryId = ref('') // 선택된 카테고리 ID
-const customCategoryName = ref('') // 직접 입력 카테고리명
-const chartMode = ref('EXPENSE') // 차트 표시 모드
+// 수정 모드 상태
+const isEditing = ref(false)
+const editingId = ref(null)
+
+// 입력 필드 상태
+const transactionType = ref('EXPENSE')
+const selectedCategoryId = ref('')
+const customCategoryName = ref('')
+const chartMode = ref('EXPENSE')
 
 const newTransaction = ref({
   date: new Date().toISOString().substr(0, 10),
@@ -182,28 +209,64 @@ const newTransaction = ref({
   memo: ''
 })
 
-// --- 초기화 및 데이터 로드 ---
+// --- 초기화 ---
 onMounted(async () => {
   await store.getTransactions()
-  await store.getCategories(transactionType.value) // 초기값(지출) 카테고리 로드
+  await store.getCategories(transactionType.value)
 })
 
-// 수입/지출 버튼 클릭 시 카테고리 새로고침
+// --- 핵심 로직 ---
+
+// 1. 내역 클릭 시 수정 모드로 전환
+const startEdit = (item) => {
+  isEditing.value = true
+  editingId.value = item.id
+  transactionType.value = item.category_type
+  
+  // 타입에 맞는 카테고리 목록 불러온 후 ID 바인딩
+  store.getCategories(item.category_type).then(() => {
+    selectedCategoryId.value = item.category
+  })
+
+  newTransaction.value = {
+    date: item.date,
+    title: item.title,
+    amount: item.amount,
+    memo: item.memo || ''
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// 2. 수정 취소 및 폼 리셋
+const cancelEdit = () => {
+  isEditing.value = false
+  editingId.value = null
+  resetForm()
+}
+
+const resetForm = () => {
+  newTransaction.value = { 
+    date: new Date().toISOString().substr(0, 10), 
+    title: '', 
+    amount: null, 
+    memo: '' 
+  }
+  selectedCategoryId.value = ''
+  customCategoryName.value = ''
+}
+
+// 3. 수입/지출 타입 변경 시
 const onTypeChange = () => {
   selectedCategoryId.value = ''
   store.getCategories(transactionType.value)
 }
 
-const toggleChartMode = () => {
-  chartMode.value = chartMode.value === 'EXPENSE' ? 'INCOME' : 'EXPENSE'
-}
-
-// --- 거래 생성 로직 (중요!) ---
-const handleCreateTransaction = async () => {
+// 4. 저장 (생성/수정 통합)
+const handleSaveTransaction = async () => {
   try {
     let finalCategoryId = selectedCategoryId.value
 
-    // [A방식] 카테고리 직접 입력인 경우 먼저 생성
+    // 직접 입력 카테고리 처리
     if (selectedCategoryId.value === 'new') {
       const newCat = await store.createCategory({
         name: customCategoryName.value,
@@ -212,28 +275,51 @@ const handleCreateTransaction = async () => {
       finalCategoryId = newCat.id
     }
 
-    await store.createTransaction({
-      ...newTransaction.value,
-      category: finalCategoryId
-    })
-
-    // 초기화
-    newTransaction.value = { date: new Date().toISOString().substr(0, 10), title: '', amount: null, memo: '' }
-    selectedCategoryId.value = ''
-    customCategoryName.value = ''
-    
+    if (isEditing.value) {
+      await store.updateTransaction(editingId.value, {
+        ...newTransaction.value,
+        category: finalCategoryId
+      })
+      alert('성공적으로 수정되었습니다.')
+    } else {
+      await store.createTransaction({
+        ...newTransaction.value,
+        category: finalCategoryId
+      })
+    }
+    cancelEdit()
   } catch (err) {
-    alert('저장에 실패했습니다. 내용을 확인해주세요.')
+    if (err.response?.status === 400) {
+      alert('중복된 카테고리명이거나 입력값이 올바르지 않습니다.')
+    } else {
+      alert('처리에 실패했습니다.')
+    }
   }
 }
 
+// 5. 삭제 로직들
 const confirmDelete = async (id) => {
   if (confirm('정말 삭제하시겠습니까?')) {
     await store.deleteTransaction(id)
   }
 }
 
-// --- 필터링 및 계산 로직 (기존 유지) ---
+const deleteCategory = async (catId) => {
+  if (confirm('이 카테고리를 삭제하시겠습니까?\n(공통 카테고리나 사용 중인 카테고리는 삭제가 제한될 수 있습니다.)')) {
+    try {
+      await store.deleteCategory(catId)
+      selectedCategoryId.value = ''
+    } catch (err) {
+      alert('삭제할 수 없는 카테고리입니다.')
+    }
+  }
+}
+
+// --- 기타 UI 로직 ---
+const toggleChartMode = () => {
+  chartMode.value = chartMode.value === 'EXPENSE' ? 'INCOME' : 'EXPENSE'
+}
+
 const filteredTransactions = computed(() => {
   return store.transactions.filter(item => {
     const itemDate = new Date(item.date)
@@ -250,7 +336,6 @@ const totalExpense = computed(() => filteredTransactions.value
 
 const totalBalance = computed(() => totalIncome.value - totalExpense.value)
 
-// --- 차트 로직 (수입/지출 전환 기능 포함) ---
 const hasChartData = computed(() => {
   return filteredTransactions.value.some(t => t.category_type === chartMode.value)
 })
@@ -258,17 +343,15 @@ const hasChartData = computed(() => {
 const chartData = computed(() => {
   const items = filteredTransactions.value.filter(t => t.category_type === chartMode.value)
   const categorySums = {}
-  
   items.forEach(item => {
     categorySums[item.category_name] = (categorySums[item.category_name] || 0) + item.amount
   })
-
   return {
     labels: Object.keys(categorySums),
     datasets: [{
       backgroundColor: chartMode.value === 'EXPENSE' 
-        ? ['#FF6384', '#FF9F40', '#FFCE56', '#4BC0C0', '#9966FF'] // 지출 색상 (웜톤)
-        : ['#28a745', '#20c997', '#17a2b8', '#343a40', '#6c757d'], // 수입 색상 (쿨톤)
+        ? ['#FF6384', '#FF9F40', '#FFCE56', '#4BC0C0', '#9966FF']
+        : ['#28a745', '#20c997', '#17a2b8', '#343a40', '#6c757d'],
       data: Object.values(categorySums)
     }]
   }
@@ -295,4 +378,6 @@ const formatPrice = (value) => value?.toLocaleString() || 0
 .btn-check:checked + .btn-outline-success { background-color: #28a745; color: white; }
 .bg-success-subtle { background-color: #e8f5e9; color: #2e7d32; }
 .bg-danger-subtle { background-color: #ffebee; color: #c62828; }
+/* 수정 모드 시 행 하이라이트 효과 */
+.table-hover tbody tr:active { background-color: #fff3cd; }
 </style>

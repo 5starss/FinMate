@@ -24,12 +24,13 @@ def article_list_create(request):
     # 2. 게시글 생성
     elif request.method == 'POST':
         serializer = ArticleSerializer(data=request.data)
-        if serializer.validate_ok():
+        
+        # [수정] validate_ok()를 is_valid(raise_exception=True)로 변경
+        if serializer.is_valid(raise_exception=True):
             # --- 자산 및 소비패턴 스냅샷 로직 ---
             user = request.user
             
-            # (1) 총 자산 계산 (간단 예시: 가계부 잔액 합산)
-            # 실제로는 사용자가 가진 모든 계좌/상품 합계를 가져와야 함
+            # (1) 총 자산 계산
             income = user.transactions.filter(category__type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
             expense = user.transactions.filter(category__type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
             current_cash = income - expense
