@@ -40,7 +40,7 @@
         </div>
 
         <div v-else class="card-content user-mode">
-          <div class="user-profile">
+          <div class="user-profile" @click="router.push({ name: 'MyPageView' })">
             <div class="avatar-circle active">👤</div>
             <p class="welcome-text">
               <span class="username">{{ store.username }}</span>님,<br>
@@ -48,7 +48,7 @@
             </p>
           </div>
           <div class="my-menu">
-            <button class="menu-btn">찜한 상품</button>
+            <button class="menu-btn" @click="router.push({ name: 'MyPageView' })">마이페이지</button>
             <button class="menu-btn" @click="router.push({ name: 'RecommendView' })">AI 추천</button>
           </div>
           <button class="primary-btn outline" @click="store.logOut()">로그아웃</button>
