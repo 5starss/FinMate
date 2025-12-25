@@ -1,4 +1,6 @@
 from django.shortcuts import get_object_or_404, get_list_or_404
+from django.db.models import Sum
+from datetime import date
 from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -8,6 +10,7 @@ from rest_framework.response import Response
 import requests, json
 from .models import DepositProducts, DepositOptions, SavingProducts, SavingOptions, DepositSubscription, SavingSubscription
 from .serializers import DepositProductsSerializer, DepositOptionsSerializer, SavingProductsSerializer, SavingOptionsSerializer, DepositProductDetailSerializer, SavingProductDetailSerializer, DepositSubscriptionSerializer, SavingSubscriptionSerializer
+from ledgers.models import Transaction
 
 API_KEY = settings.API_KEY
 
@@ -264,88 +267,198 @@ def recommend_products(request):
         "Authorization": f"Bearer {settings.OPENAI_API_KEY}"
     }
 
-    # user = request.user
+    user = request.user
 
-    dummy_profile = {
-        "age": 28,
-        "gender": "여성",
-        "annual_income": 35000000,
-        "tendency": "안정형",
-        "asset": 5000000,
-        "income": 3000000,
-        "expense": 2500000,
-        "top_spending_category": "식비",
-        "spending_ratio": 40,
-    }
-    age = dummy_profile["age"]
-    gender = dummy_profile["gender"]
-    annual_income = dummy_profile["annual_income"]  
-    tendency = dummy_profile["tendency"]
-    asset = dummy_profile["asset"]
-    income = dummy_profile["income"]
-    expense = dummy_profile["expense"]
-    top_spending_category = dummy_profile["top_spending_category"]
-    spending_ratio = dummy_profile["spending_ratio"]
+    # ---------------------------------------------------------
+    # 1. [유저 프로필] UserProfile 모델에서 가져오기
+    # ---------------------------------------------------------
+    try:
+        profile = user.profile
+        # 모델의 @property age 활용 (없으면 30세 기본값)
+        age = profile.age if profile.age else 30
+        # 성별 (get_gender_display()를 쓰면 'Male'/'Female' 등 읽기 좋은 값으로 변환 가능)
+        gender = profile.get_gender_display() if profile.gender else '알 수 없음'
+        # 연 소득 (DB의 income 필드)
+        annual_income = profile.income if profile.income else 0
+        # 소비/투자 성향
+        tendency = profile.spending_habits if profile.spending_habits else '분석 필요'
+    except:
+        # 프로필이 없는 경우 기본값
+        age, gender, annual_income, tendency = 30, '알 수 없음', 0, '정보 없음'
 
+    # ---------------------------------------------------------
+    # 2. [자산 정보] 가계부 전체 내역으로 계산 (누적 자산)
+    # ---------------------------------------------------------
+    all_income = Transaction.objects.filter(user=user, category__type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
+    all_expense = Transaction.objects.filter(user=user, category__type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
+    current_asset = all_income - all_expense
+
+    # ---------------------------------------------------------
+    # 3. [이번 달 가계부] 소비 패턴 분석
+    # ---------------------------------------------------------
+    today = date.today()
+    this_month_txs = Transaction.objects.filter(
+        user=user, 
+        date__year=today.year, 
+        date__month=today.month
+    )
+
+    # 이번 달 수입/지출
+    month_income = this_month_txs.filter(category__type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
+    month_expense = this_month_txs.filter(category__type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # 여유 자금 (이번 달 저축 가능액)
+    surplus_funds = month_income - month_expense
+
+    # 지출 1위 카테고리 찾기
+    top_spending = this_month_txs.filter(category__type='EXPENSE')\
+        .values('category__name')\
+        .annotate(total=Sum('amount'))\
+        .order_by('-total')\
+        .first()
+    
+    top_category = top_spending['category__name'] if top_spending else "없음"
+    top_amount = top_spending['total'] if top_spending else 0
+    spending_ratio = int((top_amount / month_expense * 100)) if month_expense > 0 else 0
+
+    # ---------------------------------------------------------
+    # 4. [추천 후보 상품] DB에서 가져오기
+    # ---------------------------------------------------------
+    # (1) 모든 예금 상품 가져오기
+    all_deposits = DepositProducts.objects.all()
+    deposit_list = []
+    
+    for p in all_deposits:
+        # 해당 상품의 옵션 중 가장 높은 우대 금리 찾기
+        options = DepositOptions.objects.filter(fin_prdt_cd=p)
+        if options.exists():
+            # intr_rate2가 없는 경우 0으로 처리
+            max_rate = options.order_by('-intr_rate2').first().intr_rate2 or 0
+        else:
+            max_rate = 0
+            
+        deposit_list.append({
+            'product': p,
+            'max_rate': max_rate
+        })
+    
+    # (2) 금리 내림차순 정렬 후 상위 5개 자르기
+    deposit_list.sort(key=lambda x: x['max_rate'], reverse=True)
+    top_5_deposits = deposit_list[:5]
+
+
+    # (3) 모든 적금 상품 가져오기
+    all_savings = SavingProducts.objects.all()
+    saving_list = []
+    
+    for p in all_savings:
+        options = SavingOptions.objects.filter(fin_prdt_cd=p, save_trm__in=[6,12,24,36])
+        print(options)
+        if options.exists():
+            max_rate = options.order_by('-intr_rate2').first().intr_rate2 or 0
+        else:
+            max_rate = 0
+            
+        saving_list.append({
+            'product': p,
+            'max_rate': max_rate
+        })
+        
+    # (4) 금리 내림차순 정렬 후 상위 5개 자르기
+    saving_list.sort(key=lambda x: x['max_rate'], reverse=True)
+    top_5_savings = saving_list[:5]
+
+
+    # ---------------------------------------------------------
+    # 문자열 생성 (프롬프트 입력용)
+    product_list_str = "--- 예금 상품 (금리 상위 5개) ---\n"
+    for item in top_5_deposits:
+        p = item['product']
+        rate = item['max_rate']
+        product_list_str += f"- [ID:{p.id}] {p.fin_prdt_nm} ({p.kor_co_nm}) / 최고금리: {rate}%\n"
+
+    product_list_str += "\n--- 적금 상품 (금리 상위 5개) ---\n"
+    for item in top_5_savings:
+        p = item['product']
+        rate = item['max_rate']
+        product_list_str += f"- [ID:{p.id}] {p.fin_prdt_nm} ({p.kor_co_nm}) / 최고금리: {rate}%\n"
+
+    
+    # dummy_profile = {
+    #     "age": 28,
+    #     "gender": "여성",
+    #     "annual_income": 35000000,
+    #     "tendency": "안정형",
+    #     "asset": 5000000,
+    #     "income": 3000000,
+    #     "expense": 2500000,
+    #     "top_spending_category": "식비",
+    #     "spending_ratio": 40,
+    # }
+    # age = dummy_profile["age"]
+    # gender = dummy_profile["gender"]
+    # annual_income = dummy_profile["annual_income"]  
+    # tendency = dummy_profile["tendency"]
+    # asset = dummy_profile["asset"]
+    # income = dummy_profile["income"]
+    # expense = dummy_profile["expense"]
+    # top_spending_category = dummy_profile["top_spending_category"]
+    # spending_ratio = dummy_profile["spending_ratio"]
+    
+    
+
+    # ---------------------------------------------------------
+    # 5. [AI 프롬프트 구성]
+    # ---------------------------------------------------------
     user_content = f"""
-    아래 고객 정보를 분석하여 최적의 상품을 추천해주세요.
+    아래 고객 데이터를 분석하여 가장 적합한 금융 상품 1개를 추천해주세요.
 
-    [고객 프로필]
-    - 나이: {age}세
-    - 성별: {gender}
-    - 연 소득: {annual_income}원
-    - 투자 성향: {tendency}
-    - 현재 자산: {asset}원
-    - 저축 여력: 월 {income - expense}원 (수입 {income} - 지출 {expense})
-    - 주요 지출 내역: {top_spending_category} (전체 지출의 {spending_ratio}%)
+    [1. 고객 프로필]
+    - 나이/성별: {age}세 / {gender}
+    - 연 소득: {annual_income:,}원
+    - 소비 성향: {tendency}
+    - 현재 총 자산: {current_asset:,}원
+    
+    [2. 이번 달 가계부 현황]
+    - 월 수입: {month_income:,}원
+    - 월 지출: {month_expense:,}원
+    - 월 여유 자금: {surplus_funds:,}원 (이 금액으로 저축 가능)
+    - 최다 지출 항목: {top_category} (총 지출의 {spending_ratio}%)
 
-    [추천 후보 상품 리스트 (DB 데이터)]
-    1. [ID: 1] 우리은행 WON플러스예금 (금리 3.5%, 12개월)
-    2. [ID: 5] 저축은행 특판 적금 (금리 4.5%, 6개월, 방문 가입 필수)
-    3. [ID: 8] 카카오뱅크 자유적금 (금리 3.0%, 자유적립)
+    [3. 추천 후보 상품 리스트]
+    {product_list_str}
 
-    위 후보 중 1개를 선택하고, 추가적인 투자 조언을 해주세요.
-
-    [답변 예시]
-    입력: (25세/사회초년생/여유자금 50만원/안정형)
-    출력:
-    {{
-        "recommended_product_id": "8",
-        "recommendation_reason": "사회초년생이라 목돈 마련이 우선입니다. 자유롭게 납입 가능한 카카오뱅크 적금으로 저축 습관을 기르는 것이 좋습니다.",
-        "financial_advice": "현재 식비 지출이 40%로 높습니다. 배달 음식을 줄이면 월 20만 원을 더 저축할 수 있습니다.",
-        "additional_category": "CMA 통장 (비상금 관리용)"
-    }}
-
-    이제 위 형식을 참고하여 실제 답변을 작성해주세요.
+    [요청 사항]
+    위 후보 상품 중 고객의 상황(여유 자금, 소비 성향 등)에 가장 잘 맞는 상품 하나를 골라 추천해주세요.
+    특히 '최다 지출 항목'을 언급하며 소비 습관에 대한 조언도 함께 해주세요.
     """
 
     system_content = """
-    당신은 '`FinMate'의 수석 AI 자산관리사입니다.
-    금융 지식이 부족한 사회초년생부터 전문 투자자까지 다양한 고객에게 최적의 상품을 추천해야 합니다.
+    당신은 'FinMate'의 수석 AI 자산관리사입니다.
 
     [원칙]
-    1. 분석은 논리적이어야 하며, 반드시 고객이 제공한 '가계부 데이터(수입/지출)'를 근거로 들어야 합니다.
-    2. 말투는 신뢰감 있으면서도 친절한 '해요체'를 사용하세요.
-    3. DB에 있는 상품을 추천할 때는 정확한 상품명을 언급하세요.
-    4. 존재하지 않는 상품을 지어내지 마세요(Hallucination 방지).
+    1. 반드시 제공된 [추천 후보 상품 리스트] 내에 있는 상품 중 하나를 골라 추천해야 합니다.
+    2. 없는 상품을 지어내지 마세요.
+    3. 추가 투자 제안에는 이유도 포함하세요.
+    4. JSON 형식으로만 응답하세요.
+    5. 응답 형식은 반드시 아래 예시를 따르세요.
 
-    [출력 형식]
-    답변은 반드시 아래 JSON 포맷을 따라주세요:
+    [출력 JSON 포맷]
     {
-        "recommended_product_id": "추천한 DB 상품의 ID (없으면 null)",
-        "recommendation_reason": "추천 사유 (3문장 이내)",
-        "financial_advice": "가계부 분석을 통한 재무 조언 (소비 습관 개선 제안 등)",
-        "additional_category": "DB 외에 추천하는 투자 상품군 (예: ETF, 리츠)"
+        "recommended_product_id": "추천 상품 ID (숫자)",
+        "product_type": "예금 또는 적금",
+        "recommendation_reason": "추천 이유 (고객의 소득, 여유 자금 등을 구체적으로 언급)",
+        "financial_advice": "재무 조언 (예: 식비가 많으니 줄이세요, 여유 자금은 적금으로 등)",
+        "additional_category": "DB 상품 외 추천 투자처 (예: ETF, CMA, 채권 등)"
     }
     """
 
     data = {
-        "model": "gpt-4.1-mini", 
+        "model": "gpt-5.2", 
         "messages": [
-            {"role": "system", "content": system_content},
+            {"role": "developer", "content": system_content},
             {"role": "user", "content": user_content}
         ],
-        "max_tokens": 500,
         "temperature": 0.3
     }
 
@@ -354,7 +467,10 @@ def recommend_products(request):
         response.raise_for_status()
         result = response.json()
         raw_recommendation = result['choices'][0]['message']['content']
-        recommendation = json.loads(raw_recommendation)
+
+        # JSON 파싱 (마크다운 ```json ... ``` 제거)
+        clean_json = raw_recommendation.replace("```json", "").replace("```", "").strip()
+        recommendation = json.loads(clean_json)
 
         return Response({"recommendation": recommendation}, status=status.HTTP_200_OK)
     

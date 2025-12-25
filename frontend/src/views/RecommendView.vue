@@ -25,7 +25,7 @@
       <div v-else class="result-container">
         <div class="ai-message">
           <span class="ai-badge">FinMate Analysis</span>
-          <h2>"{{ userStore.userInfo?.username }}님을 위한 솔루션입니다."</h2>
+          <h2>"{{ userStore.nickname }}님을 위한 솔루션입니다."</h2>
         </div>
 
         <div class="recommendation-section">
