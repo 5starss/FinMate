@@ -148,7 +148,7 @@ const initMap = () => {
   infowindow = new window.kakao.maps.InfoWindow({ zIndex: 1 })
 
   const geoOptions = {
-    enableHighAccuracy: true,
+    // enableHighAccuracy: true,
     maximumAge: 0,
     timeout: 10000
   }

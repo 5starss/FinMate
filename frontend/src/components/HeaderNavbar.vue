@@ -6,7 +6,10 @@
           <ul>
             <template v-if="store.isLogin">
               <li class="greeting">
-                <span class="username">{{ store.username }}</span>님 환영합니다
+                <span class="username" @click="router.push({ name: 'MyPageView' })">
+                  {{ store.nickname }}
+                </span>
+                <span>님 환영합니다</span>
               </li>
               <li>
                 <a @click.prevent="handleLogout" class="util-link logout-btn">로그아웃</a>
@@ -165,10 +168,15 @@ const handleLogout = () => {
   color: #666;
   cursor: default; /* 드래그/클릭 느낌 제거 */
 }
+
 .username {
   font-weight: 700;
   color: #333;
+  cursor: pointer;       /* 마우스 올리면 손가락 모양 */
+  margin-right: 4px;     /* '님' 글자와 간격 */
+  transition: color 0.2s;
 }
+
 .logout-btn {
   color: #999; /* 로그아웃은 약간 흐리게 */
 }
