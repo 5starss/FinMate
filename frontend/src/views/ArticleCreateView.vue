@@ -71,56 +71,66 @@ const handleSubmit = () => {
 </script>
 
 <style scoped>
-@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-.animate-slide-up { animation: slideUp 0.6s ease-out; }
-
-.view-container {
-  max-width: 800px; margin: 50px auto; padding: 0 20px;
-}
-
-.write-card {
-  background: white; border-radius: 30px; padding: 50px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.05);
-}
-
-.card-header { text-align: center; margin-bottom: 40px; }
-.title { font-size: 2rem; font-weight: 800; color: #333; margin-bottom: 10px; }
-.subtitle { color: #666; }
-
-.form-group { margin-bottom: 25px; }
-.label { display: block; font-weight: 700; color: #444; margin-bottom: 8px; font-size: 0.95rem; }
-
-.custom-input {
-  width: 100%; padding: 16px 20px; border-radius: 12px;
-  border: 1px solid #e0e0e0; background: #fcfcfc;
-  font-size: 1rem; color: #333; outline: none; transition: all 0.2s;
-}
-.title-input { font-weight: 700; }
-.content-input { resize: none; line-height: 1.6; }
-
-.custom-input:focus {
-  border-color: #2F65F6; background: white;
-  box-shadow: 0 0 0 4px rgba(47, 101, 246, 0.1);
-}
-.custom-input::placeholder { color: #aaa; font-weight: 400; }
-
-.btn-group {
-  display: flex; gap: 15px; margin-top: 40px; justify-content: center;
-}
-.cancel-btn, .submit-btn {
-  padding: 15px 40px; border-radius: 50px; font-weight: 700; font-size: 1.05rem;
-  cursor: pointer; transition: all 0.2s; border: none;
-}
-.cancel-btn { background: #f1f3f5; color: #666; }
-.cancel-btn:hover { background: #e9ecef; }
-
-.submit-btn { background: #2F65F6; color: white; box-shadow: 0 5px 20px rgba(47, 101, 246, 0.3); }
-.submit-btn:hover { background: #1c50d8; transform: translateY(-2px); }
-
-@media (max-width: 600px) {
-  .write-card { padding: 30px 20px; }
-  .title { font-size: 1.5rem; }
-  .btn-group { flex-direction: column; }
-  .cancel-btn, .submit-btn { width: 100%; }
-}
-</style>
+  /* 박스 크기 기준 통일 */
+  * { box-sizing: border-box; }
+  
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-slide-up { animation: slideUp 0.6s ease-out; }
+  
+  .view-container {
+    width: 70%; 
+    margin: 50px auto; 
+    padding: 0 20px;
+  }
+  
+  .write-card {
+    background: white; border-radius: 30px; padding: 50px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+    width: 100%; /* 컨테이너 크기에 맞춰 꽉 차게 */
+  }
+  
+  .card-header { text-align: center; margin-bottom: 40px; }
+  .title { font-size: 2rem; font-weight: 800; color: #333; margin-bottom: 10px; }
+  .subtitle { color: #666; }
+  
+  .form-group { margin-bottom: 25px; }
+  .label { display: block; font-weight: 700; color: #444; margin-bottom: 8px; font-size: 0.95rem; }
+  
+  .custom-input {
+    width: 100%; padding: 16px 20px; border-radius: 12px;
+    border: 1px solid #e0e0e0; background: #fcfcfc;
+    font-size: 1rem; color: #333; outline: none; transition: all 0.2s;
+  }
+  .title-input { font-weight: 700; font-size: 1.2rem; }
+  
+  
+  /* [수정] 입력창 높이를 500px로 늘려 시원하게 */
+  .content-input { resize: vertical; line-height: 1.6; min-height: 500px; }
+  
+  .custom-input:focus {
+    border-color: #2F65F6; background: white;
+    box-shadow: 0 0 0 4px rgba(47, 101, 246, 0.1);
+  }
+  .custom-input::placeholder { color: #aaa; font-weight: 400; }
+  
+  .btn-group {
+    display: flex; gap: 15px; margin-top: 40px; justify-content: center;
+  }
+  .cancel-btn, .submit-btn {
+    padding: 15px 50px; border-radius: 50px; font-weight: 700; font-size: 1.05rem;
+    cursor: pointer; transition: all 0.2s; border: none;
+  }
+  .cancel-btn { background: #f1f3f5; color: #666; }
+  .cancel-btn:hover { background: #e9ecef; }
+  
+  .submit-btn { background: #2F65F6; color: white; box-shadow: 0 5px 20px rgba(47, 101, 246, 0.3); }
+  .submit-btn:hover { background: #1c50d8; transform: translateY(-2px); }
+  
+  @media (max-width: 768px) {
+    .view-container { width: 95%; padding: 0 15px; margin: 30px auto; }
+    .write-card { padding: 30px 20px; }
+    .title { font-size: 1.5rem; }
+    .btn-group { flex-direction: column; }
+    .cancel-btn, .submit-btn { width: 100%; }
+  }
+  </style>

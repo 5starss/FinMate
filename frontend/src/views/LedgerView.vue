@@ -55,14 +55,14 @@
           <form @submit.prevent="handleSaveTransaction" class="transaction-form">
             <div class="form-row">
               <div class="input-group date-group">
-                <label>날짜</label>
+                <label>📅 날짜</label>
                 <input type="date" v-model="newTransaction.date" required>
               </div>
               <div class="input-group category-group">
-                <label>카테고리</label>
+                <label>📂 카테고리</label>
                 <div class="select-wrapper">
                   <select v-model="selectedCategoryId" required>
-                    <option value="" disabled>선택</option>
+                    <option value="" disabled>선택하세요</option>
                     <option v-for="cat in store.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                     <option value="new">+ 직접 입력</option>
                   </select>
@@ -71,6 +71,7 @@
                     type="button" 
                     @click.stop="deleteCategory(selectedCategoryId)" 
                     class="del-cat-btn"
+                    title="카테고리 삭제"
                   >
                     <i class="bi bi-x"></i>
                   </button>
@@ -79,21 +80,31 @@
             </div>
 
             <div v-if="selectedCategoryId === 'new'" class="form-row">
-              <input type="text" v-model="customCategoryName" class="full-input" placeholder="새 카테고리 이름 입력" required>
+              <div class="input-group">
+                <label>✨ 새 카테고리 이름</label>
+                <input type="text" v-model="customCategoryName" class="full-input" placeholder="예: 경조사비" required>
+              </div>
             </div>
 
             <div class="form-row">
               <div class="input-group title-group">
-                <input type="text" v-model="newTransaction.title" placeholder="내역 (예: 점심 식사)" required>
+                <label>🖊️ 내역</label>
+                <input type="text" v-model="newTransaction.title" placeholder="예: 점심 식사" required>
               </div>
               <div class="input-group amount-group">
-                <input type="number" v-model="newTransaction.amount" placeholder="금액" required>
-                <span class="unit">원</span>
+                <label>💰 금액</label>
+                <div class="amount-wrapper">
+                  <input type="number" v-model="newTransaction.amount" placeholder="0" required>
+                  <span class="unit">원</span>
+                </div>
               </div>
             </div>
 
             <div class="form-row">
-              <input type="text" v-model="newTransaction.memo" class="full-input" placeholder="메모 (선택사항)">
+              <div class="input-group">
+                <label>📝 메모 (선택)</label>
+                <input type="text" v-model="newTransaction.memo" class="full-input" placeholder="추가 설명을 적어주세요">
+              </div>
             </div>
 
             <div class="form-actions">
@@ -390,217 +401,180 @@ const formatPrice = (value) => value?.toLocaleString() || 0
 </script>
 
 <style scoped>
-/* 애니메이션 */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-.animate-fade-in { animation: fadeIn 0.8s ease-out; }
-.animate-slide-up { animation: slideUp 0.8s ease-out forwards; opacity: 0; }
-.delay-1 { animation-delay: 0.1s; }
-.delay-2 { animation-delay: 0.2s; }
-
-.view-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; min-height: 800px; }
-
-/* 헤더 */
-.header-section { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 30px; 
-}
-
-.page-title { 
-  font-size: 1.8rem; 
-  font-weight: 800; 
-  color: #333; 
-  margin: 0; 
-}
-
-/* 날짜 컨트롤러 박스 */
-.date-controller { 
-  display: flex; 
-  align-items: center; 
-  background: white; 
-  padding: 8px 20px; 
-  border-radius: 50px; 
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-  border: 1px solid #f8f9fa;
-}
-
-/* [수정] 텍스트 화살표 스타일 */
-.nav-btn { 
-  background: none; 
-  border: none;     
+  /* [필수] 박스 크기 계산 기준 통일 (삐져나옴 방지) */
+  * { box-sizing: border-box; }
   
-  /* 텍스트 기호를 아이콘처럼 보이게 설정 */
-  font-family: sans-serif; /* 고딕 계열 폰트 */
-  font-size: 1.5rem;       /* 크기 키움 */
-  font-weight: 300;        /* 얇게 해서 세련되게 */
-  line-height: 1;
-  padding-bottom: 3px;     /* 높이 미세 조정 */
+  /* 애니메이션 */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-fade-in { animation: fadeIn 0.8s ease-out; }
+  .animate-slide-up { animation: slideUp 0.8s ease-out forwards; opacity: 0; }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
   
-  color: #adb5bd;    
-  cursor: pointer; 
-  padding: 0 15px;   
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-}
-
-.nav-btn:hover { 
-  color: #2F65F6; /* 호버 시 파란색 */
-  transform: scale(1.2); 
-  font-weight: 700; /* 호버 시 두껍게 */
-}
-
-.current-date { 
-  font-size: 1.3rem; 
-  font-weight: 800; 
-  margin: 0 5px; 
-  color: #333; 
-  width: 140px; 
-  text-align: center; 
-  user-select: none; 
-}
-
-.today-btn { 
-  background: #f1f3f5; 
-  color: #666; 
-  border: none; 
-  padding: 6px 14px; 
-  border-radius: 20px; 
-  font-size: 0.8rem; 
-  font-weight: 700; 
-  cursor: pointer; 
-  margin-left: 10px; 
-  transition: all 0.2s;
-}
-
-.today-btn:hover {
-  background: #2F65F6; 
-  color: white;
-}
-
-/* 1. 상단 통계 카드 */
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
-.stat-card { background: white; border-radius: 20px; padding: 25px; display: flex; align-items: center; gap: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; }
-.icon-circle { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
-.bg-green { background: #e8f5e9; color: #198754; }
-.bg-red { background: #ffebee; color: #e53935; }
-.bg-blue { background: #e3f2fd; color: #0288d1; }
-.text-group { display: flex; flex-direction: column; }
-.label { font-size: 0.85rem; color: #888; font-weight: 600; margin-bottom: 5px; }
-.amount { font-size: 1.5rem; font-weight: 800; margin: 0; }
-.text-green { color: #198754; }
-.text-red { color: #e53935; }
-.text-blue { color: #333; }
-
-/* [핵심 수정] 레이아웃 그리드 고정 */
-.content-grid { 
-  display: grid; 
-  /* minmax(0, 2fr)을 사용하여 내부 컨텐츠가 넘칠 때 그리드가 깨지는 것을 방지 */
-  grid-template-columns: minmax(0, 2fr) minmax(350px, 1fr); 
-  gap: 25px; 
-  align-items: start; 
-}
-
-/* 2. 입력 폼 & 리스트 (왼쪽) */
-.input-card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); margin-bottom: 25px; border: 2px solid transparent; transition: border-color 0.3s; }
-.input-card.edit-mode { border-color: #ffca28; background: #fffdf5; }
-
-.card-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-.card-title { font-size: 1.2rem; font-weight: 800; color: #333; margin: 0; }
-.type-toggle { background: #f1f3f5; padding: 4px; border-radius: 12px; display: flex; }
-.toggle-btn { padding: 6px 15px; border-radius: 8px; font-size: 0.9rem; font-weight: 700; color: #888; cursor: pointer; transition: 0.2s; }
-.toggle-btn.active { background: white; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-.toggle-btn input { display: none; }
-
-.transaction-form .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
-.input-group { flex: 1; display: flex; flex-direction: column; }
-.input-group label { font-size: 0.8rem; font-weight: 700; color: #666; margin-bottom: 5px; }
-.input-group input, .select-wrapper select { width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 10px; font-size: 0.95rem; outline: none; }
-.input-group input:focus, .select-wrapper select:focus { border-color: #2F65F6; }
-.select-wrapper { position: relative; }
-.del-cat-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ff6b6b; font-size: 1.2rem; cursor: pointer; }
-.unit { margin-left: 10px; align-self: center; font-weight: 700; color: #555; }
-.full-input { width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 10px; }
-
-.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
-.submit-btn { background: #2F65F6; color: white; border: none; padding: 12px 30px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-.submit-btn:hover { background: #1c50d8; }
-.submit-btn.edit { background: #ffa000; }
-.cancel-btn { background: #eee; color: #555; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; }
-
-/* 내역 리스트 */
-.list-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); }
-.list-header { margin-bottom: 20px; }
-.list-header h5 { font-weight: 800; font-size: 1.1rem; }
-.count-badge { background: #eee; color: #555; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; margin-left: 5px; }
-
-.transaction-list { display: flex; flex-direction: column; gap: 10px; }
-.list-item { display: flex; align-items: center; padding: 15px; border-radius: 15px; background: #fcfcfc; border: 1px solid #f0f0f0; cursor: pointer; transition: all 0.2s; }
-.list-item:hover { transform: translateX(5px); background: #f8fbff; border-color: #eef4ff; }
-
-.item-date { display: flex; flex-direction: column; align-items: center; margin-right: 15px; min-width: 40px; }
-.item-date .day { font-size: 1.1rem; font-weight: 800; color: #333; }
-.item-date .month-sm { font-size: 0.7rem; color: #999; }
-
-.item-info { flex: 1; display: flex; flex-direction: column; }
-.info-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.cat-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
-.cat-badge.income { background: #e8f5e9; color: #198754; }
-.cat-badge.expense { background: #ffebee; color: #e53935; }
-.item-title { font-weight: 700; color: #333; font-size: 0.95rem; }
-.item-memo { font-size: 0.8rem; color: #888; }
-.item-amount { font-weight: 800; font-size: 1.1rem; margin-right: 15px; }
-.item-del-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1.1rem; }
-.item-del-btn:hover { color: #ff6b6b; }
-.empty-state { text-align: center; padding: 40px 0; color: #888; }
-.empty-state i { font-size: 2rem; margin-bottom: 10px; display: block; }
-
-/* 3. 차트 영역 (수정됨) */
-.right-column {
-  position: sticky;
-  top: 100px;
-  /* width: 100%; (삭제 - 그리드에서 제어) */
-}
-
-.chart-card { 
-  background: white; 
-  border-radius: 20px; 
-  padding: 25px; 
-  box-shadow: 0 5px 20px rgba(0,0,0,0.03); 
+  .view-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; min-height: 800px; }
   
-  /* [핵심] 높이 고정: 차트가 있든 없든 높이를 강제합니다. */
-  height: 500px; 
+  /* 헤더 */
+  .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+  .page-title { font-size: 1.8rem; font-weight: 800; color: #333; margin: 0; }
   
-  display: flex; 
-  flex-direction: column; 
-}
-
-.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.chart-header h5 { font-weight: 800; margin: 0; }
-.chart-toggle-btn { border: 1px solid #ddd; background: white; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; }
-
-/* [핵심] 차트 래퍼: 부모 높이를 꽉 채우도록 설정 */
-.chart-wrapper { 
-  flex: 1; 
-  position: relative; 
-  width: 100%; 
-  overflow: hidden; 
-}
-
-.empty-chart { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ccc; }
-.empty-chart i { font-size: 3rem; margin-bottom: 10px; }
-
-/* 반응형 */
-@media (max-width: 900px) {
-  .stats-grid { grid-template-columns: 1fr; }
+  /* 날짜 컨트롤러 */
+  .date-controller { 
+    display: flex; align-items: center; background: white; padding: 8px 20px; 
+    border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #f8f9fa;
+  }
+  .nav-btn { 
+    background: none; border: none; font-family: sans-serif; font-size: 1.5rem; 
+    font-weight: 300; line-height: 1; padding-bottom: 3px; color: #adb5bd;    
+    cursor: pointer; padding: 0 15px; transition: all 0.2s; display: flex; align-items: center;
+  }
+  .nav-btn:hover { color: #2F65F6; transform: scale(1.2); font-weight: 700; }
+  .current-date { font-size: 1.3rem; font-weight: 800; margin: 0 5px; color: #333; width: 140px; text-align: center; user-select: none; }
+  .today-btn { 
+    background: #f1f3f5; color: #666; border: none; padding: 6px 14px; 
+    border-radius: 20px; font-size: 0.8rem; font-weight: 700; cursor: pointer; margin-left: 10px; transition: all 0.2s;
+  }
+  .today-btn:hover { background: #2F65F6; color: white; }
   
-  /* 모바일에서는 1열로 변경 */
-  .content-grid { grid-template-columns: 1fr; } 
+  /* 1. 상단 통계 카드 */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+  .stat-card { background: white; border-radius: 20px; padding: 25px; display: flex; align-items: center; gap: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; }
+  .icon-circle { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
+  .bg-green { background: #e8f5e9; color: #198754; }
+  .bg-red { background: #ffebee; color: #e53935; }
+  .bg-blue { background: #e3f2fd; color: #0288d1; }
+  .text-group { display: flex; flex-direction: column; overflow: hidden; }
+  .label { font-size: 0.85rem; color: #888; font-weight: 600; margin-bottom: 5px; }
+  .amount { font-size: 1.5rem; font-weight: 800; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .text-green { color: #198754; }
+  .text-red { color: #e53935; }
+  .text-blue { color: #333; }
   
-  .right-column { position: static; } 
-  .chart-card { height: auto; min-height: 400px; } /* 모바일 높이 재조정 */
-  .input-card .form-row { flex-direction: column; gap: 10px; }
-}
-</style>
+  /* 레이아웃 그리드 */
+  .content-grid { 
+    display: grid; 
+    /* 입력창(2) : 차트(1) 비율 유지하되, 차트는 최소 350px 확보 */
+    grid-template-columns: minmax(0, 2fr) minmax(350px, 1fr); 
+    gap: 25px; align-items: start; 
+  }
+  
+  /* 2. 입력 폼 (왼쪽) */
+  .input-card { 
+    background: white; border-radius: 20px; padding: 30px; 
+    box-shadow: 0 5px 20px rgba(0,0,0,0.03); margin-bottom: 25px; 
+    border: 2px solid transparent; transition: border-color 0.3s; 
+  }
+  .input-card.edit-mode { border-color: #ffca28; background: #fffdf5; }
+  
+  .card-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+  .card-title { font-size: 1.2rem; font-weight: 800; color: #333; margin: 0; }
+  .type-toggle { background: #f1f3f5; padding: 4px; border-radius: 12px; display: flex; }
+  .toggle-btn { padding: 6px 15px; border-radius: 8px; font-size: 0.9rem; font-weight: 700; color: #888; cursor: pointer; transition: 0.2s; }
+  .toggle-btn.active { background: white; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+  .toggle-btn input { display: none; }
+  
+  /* [핵심 수정] 입력 폼 레이아웃: Grid 사용으로 겹침 방지 */
+  .transaction-form .form-row { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; /* 정확히 반반 나누기 */
+    gap: 20px; 
+    margin-bottom: 20px; 
+  }
+  
+  /* 메모 입력창처럼 혼자 있는 행은 1열로 통합 */
+  .transaction-form .form-row:has(.full-input),
+  .transaction-form .form-row:has(.input-group:only-child) {
+    grid-template-columns: 1fr;
+  }
+  
+  .input-group { 
+    display: flex; flex-direction: column; width: 100%;
+  }
+  
+  .input-group label { 
+    font-size: 0.8rem; font-weight: 700; color: #666; margin-bottom: 8px; 
+  }
+  
+  /* 입력창 기본 스타일 */
+  .input-group input, 
+  .select-wrapper select,
+  .full-input { 
+    width: 100%; 
+    padding: 12px; 
+    border: 1px solid #e0e0e0; 
+    border-radius: 10px; font-size: 0.95rem; outline: none; background: #fff;
+  }
+  .input-group input:focus, .select-wrapper select:focus { border-color: #2F65F6; }
+  
+  /* 카테고리 셀렉트: 오른쪽 여백(X버튼용) */
+  .select-wrapper { position: relative; width: 100%; }
+  .select-wrapper select { padding-right: 40px; }
+  
+  .del-cat-btn { 
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%); 
+    background: white; border: 1px solid #eee; border-radius: 50%; width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    color: #ff6b6b; font-size: 1rem; cursor: pointer; z-index: 2;
+  }
+  
+  /* 금액 입력칸: 오른쪽 여백('원'용) */
+  .amount-wrapper { position: relative; width: 100%; }
+  .amount-wrapper input { padding-right: 40px; text-align: right; font-weight: 700; }
+  .amount-wrapper .unit { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-weight: 700; color: #888; pointer-events: none; }
+  
+  /* [수정] 메모 입력창은 오른쪽 여백 제거 */
+  .full-input { padding-right: 12px; }
+  
+  .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+  .submit-btn { background: #2F65F6; color: white; border: none; padding: 12px 30px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+  .submit-btn:hover { background: #1c50d8; }
+  .submit-btn.edit { background: #ffa000; }
+  .cancel-btn { background: #eee; color: #555; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+  
+  /* 내역 리스트 */
+  .list-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); }
+  .list-header { margin-bottom: 20px; }
+  .list-header h5 { font-weight: 800; font-size: 1.1rem; }
+  .count-badge { background: #eee; color: #555; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; margin-left: 5px; }
+  
+  .transaction-list { display: flex; flex-direction: column; gap: 10px; }
+  .list-item { display: flex; align-items: center; padding: 15px; border-radius: 15px; background: #fcfcfc; border: 1px solid #f0f0f0; cursor: pointer; transition: all 0.2s; }
+  .list-item:hover { transform: translateX(5px); background: #f8fbff; border-color: #eef4ff; }
+  
+  .item-date { display: flex; flex-direction: column; align-items: center; margin-right: 15px; min-width: 40px; }
+  .item-date .day { font-size: 1.1rem; font-weight: 800; color: #333; }
+  .item-date .month-sm { font-size: 0.7rem; color: #999; }
+  .item-info { flex: 1; display: flex; flex-direction: column; }
+  .info-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .cat-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+  .cat-badge.income { background: #e8f5e9; color: #198754; }
+  .cat-badge.expense { background: #ffebee; color: #e53935; }
+  .item-title { font-weight: 700; color: #333; font-size: 0.95rem; }
+  .item-memo { font-size: 0.8rem; color: #888; }
+  .item-amount { font-weight: 800; font-size: 1.1rem; margin-right: 15px; }
+  .item-del-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1.1rem; }
+  .item-del-btn:hover { color: #ff6b6b; }
+  .empty-state { text-align: center; padding: 40px 0; color: #888; }
+  .empty-state i { font-size: 2rem; margin-bottom: 10px; display: block; }
+  
+  /* 3. 차트 영역 */
+  .right-column { position: sticky; top: 100px; }
+  .chart-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); height: 500px; display: flex; flex-direction: column; }
+  .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .chart-header h5 { font-weight: 800; margin: 0; }
+  .chart-toggle-btn { border: 1px solid #ddd; background: white; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; }
+  .chart-wrapper { flex: 1; position: relative; width: 100%; overflow: hidden; }
+  .empty-chart { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ccc; }
+  .empty-chart i { font-size: 3rem; margin-bottom: 10px; }
+  
+  /* 반응형 */
+  @media (max-width: 900px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .content-grid { grid-template-columns: 1fr; } 
+    .right-column { position: static; } 
+    .chart-card { height: auto; min-height: 400px; }
+    
+    /* 모바일에서는 1열로 변경 */
+    .transaction-form .form-row { grid-template-columns: 1fr; }
+  }
+  </style>

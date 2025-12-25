@@ -8,7 +8,7 @@
           <span class="badge">FinMate 리포트 📢</span>
           <h1 class="main-title">
             똑똑한 금융 생활의 시작,<br>
-            <strong>나에게 딱 맞는 예적금</strong>
+            <strong>나에게 맞는 예적금</strong>
           </h1>
           <p class="sub-text">
             수많은 금융 상품 중 최고 금리 상품을<br>
@@ -40,10 +40,18 @@
         </div>
 
         <div v-else class="card-content user-mode">
-          <div class="user-profile" @click="router.push({ name: 'MyPageView' })">
-            <div class="avatar-circle active">👤</div>
+          <div class="user-profile">
+            <div class="avatar-circle active">
+              <img 
+                v-if="store.userImage" 
+                :src="getProfileImageUrl(store.userImage)" 
+                class="home-profile-img" 
+                alt="프로필" 
+              />
+              <span v-else>👤</span>
+            </div>
             <p class="welcome-text">
-              <span class="username">{{ store.username }}</span>님,<br>
+              <span class="username">{{ store.nickname }}</span>님,<br>
               부자 되세요! 💸
             </p>
           </div>
@@ -98,26 +106,6 @@
       </div>
     </section>
 
-    <section class="search-section animate-slide-up delay-2">
-      <div class="search-content">
-        <h2>금융 상품, 무엇이든 물어보세요</h2>
-        <div class="search-box">
-          <input 
-            type="text" 
-            v-model="searchQuery" 
-            @keyup.enter="goSearch"
-            placeholder="은행명, 상품명을 입력하세요 (예: 국민은행)" 
-          />
-          <button class="search-icon-btn" @click="goSearch">🔍</button>
-        </div>
-        <div class="hashtags">
-          <span>#최고금리</span>
-          <span>#청년도약계좌</span>
-          <span>#단기적금</span>
-        </div>
-      </div>
-    </section>
-
   </div>
 </template>
 
@@ -136,6 +124,13 @@ const goSearch = () => {
     // router.push({ name: 'SearchView', query: { q: searchQuery.value } })
     alert(`'${searchQuery.value}' 검색 기능을 준비 중입니다!`)
   }
+}
+
+// [추가] 이미지 URL 처리 함수
+const getProfileImageUrl = (path) => {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  return `${store.API_URL}${path}`
 }
 </script>
 
@@ -252,15 +247,25 @@ const goSearch = () => {
 }
 
 .avatar-circle {
-  width: 50px;
-  height: 50px;
+  width: 100px;
+  height: 100px;
   background-color: #f8f9fa;
-  border-radius: 50%;
+  border-radius: 50%; /* 부모도 원형 */
   margin: 0 auto 15px;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 24px;
+  overflow: hidden; /* 넘치는 부분 자르기 */
+  border: 1px solid #eee;
+}
+
+.home-profile-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 비율 유지하며 꽉 채움 */
+  border-radius: 50%; /* 이미지 자체를 둥글게 깎음 */
+  display: block; /* 이미지 하단 공백 제거용 */
 }
 
 .avatar-circle.active { background-color: #e7f1ff; }
@@ -306,16 +311,6 @@ const goSearch = () => {
 .text-area h3 { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: #333; }
 .text-area p { font-size: 14px; color: #777; margin: 0; }
 .visual-area { font-size: 48px; opacity: 0.8; }
-
-
-/* 4. 하단 검색 섹션 */
-.search-section { background: linear-gradient(120deg, #2F65F6, #5c8afa); border-radius: 24px; padding: 60px; text-align: center; color: white; box-shadow: 0 10px 30px rgba(47, 101, 246, 0.2); }
-.search-content h2 { font-size: 24px; margin-bottom: 30px; font-weight: 700; }
-.search-box { position: relative; max-width: 500px; margin: 0 auto 20px; }
-.search-box input { width: 100%; padding: 18px 25px; border-radius: 50px; border: none; font-size: 16px; outline: none; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
-.search-icon-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; cursor: pointer; }
-.hashtags span { margin: 0 8px; font-size: 14px; opacity: 0.85; cursor: pointer; transition: opacity 0.2s; }
-.hashtags span:hover { opacity: 1; font-weight: 700; text-decoration: underline; }
 
 /* 모바일 반응형 */
 @media (max-width: 900px) {

@@ -6,7 +6,9 @@ import axios from 'axios'
 export const useAccountStore = defineStore('account', () => {
   const API_URL = import.meta.env.VITE_API_URL
   const token = ref(null)
-  const myname = ref(null)
+  const myname = ref(null) // 아이디
+  const nickname = ref(null) // 닉네임
+  const userImage = ref(null)
 
   const router = useRouter()
 
@@ -42,25 +44,50 @@ const signUp = function (payload) {
 }
 
 
-  const logIn = function (payload) {
-    const username = payload.username
-    const password = payload.password
+const logIn = function (payload) {
+  const username = payload.username
+  const password = payload.password
 
-    axios({
-      method: 'post',
-      url: `${API_URL}/accounts/login/`,
-      data: {
-        username, password
-      }
-    })
-      .then(res => {
-        console.log('로그인이 완료되었습니다.')
-        console.log(res.data)
-        token.value = res.data.key
-        myname.value = username
+  axios({
+    method: 'post',
+    url: `${API_URL}/accounts/login/`,
+    data: { username, password }
+  })
+    .then(res => {
+      // 1. 토큰 및 ID 저장
+      token.value = res.data.key
+      myname.value = username
+      
+      // 2. [추가] 닉네임을 가져오기 위해 프로필 요청
+      axios({
+        method: 'get',
+        url: `${API_URL}/accounts/profile/`,
+        headers: {
+          Authorization: `Token ${token.value}`
+        }
+      })
+      .then(profileRes => {
+        // 프로필 응답에서 닉네임 추출 (없으면 ID로 대체)
+        nickname.value = profileRes.data.nickname || username
+        console.log('로그인 완료: 닉네임 가져오기 성공', nickname.value)
+
+        // [추가] 이미지 경로 저장 (백엔드 구조에 맞춰 profile.image 접근)
+        // 만약 이미지가 없으면 null이 들어감
+        userImage.value = profileRes.data.profile?.image || null
+
         router.push({ name: 'HomeView' })
       })
-      .catch(err => console.log(err))
+      .catch(err => {
+        console.error('프로필 조회 실패:', err)
+        // 프로필 조회 실패해도 로그인은 유지
+        nickname.value = username 
+        router.push({ name: 'HomeView' })
+      })
+    })
+    .catch(err => {
+      console.log(err)
+      alert('아이디 혹은 비밀번호가 틀렸습니다.')
+    })
   }
 
 
@@ -90,5 +117,7 @@ const signUp = function (payload) {
     isLogin,
     logOut,
     username: myname,
+    nickname,
+    userImage,
   }
 }, { persist: true })

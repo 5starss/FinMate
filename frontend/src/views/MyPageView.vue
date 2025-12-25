@@ -32,7 +32,7 @@
           </div>
           <div class="user-info">
             <div class="name-row">
-              <h2 class="username">{{ userInfo?.username }}님</h2>
+              <h2 class="username">{{ userInfo?.nickname }}님</h2>
               <span class="user-badge">FinMate Member</span>
             </div>
             <p class="email">{{ userInfo?.email }}</p>
@@ -314,37 +314,53 @@ const onFileChange = (e) => {
 // --- 프로필 수정 로직 (기존 saveProfile을 이 코드로 교체하세요) ---
 const saveProfile = async () => {
   try {
-    // 이미지를 보내기 위해 FormData 객체 생성
-    const formData = new FormData()
-    
-    // 텍스트 데이터 추가
-    formData.append('nickname', editData.value.nickname || '')
-    formData.append('age', editData.value.profile.age || '')
-    formData.append('gender', editData.value.profile.gender || 'M')
-    formData.append('income', editData.value.profile.income || 0)
-    formData.append('spending_habits', editData.value.profile.spending_habits || '보수적')
-
-    // 새로 선택한 이미지가 있을 때만 formData에 추가
-    if (selectedFile.value) {
-      formData.append('profile.image', selectedFile.value)
+    // [수정 1] 텍스트 정보는 JSON 객체로 구조화하여 전송
+    // 백엔드 시리얼라이저가 'profile'이라는 키 안에 데이터를 기대하기 때문입니다.
+    const requestData = {
+      nickname: editData.value.nickname,
+      profile: {
+        age: editData.value.profile.age,
+        gender: editData.value.profile.gender,
+        income: editData.value.profile.income,
+        spending_habits: editData.value.profile.spending_habits,
+      }
     }
 
-    const res = await axios.put(`${API_URL}/accounts/profile/`, formData, {
+    // 1. 텍스트 정보 먼저 업데이트 (PUT, JSON 방식)
+    let res = await axios.put(`${API_URL}/accounts/profile/`, requestData, {
       headers: { 
         Authorization: `Token ${accountStore.token}`,
-        'Content-Type': 'multipart/form-data' // 파일 전송 시 필수
+        'Content-Type': 'application/json' 
       }
     })
+
+    // 2. 이미지가 변경된 경우, 별도로 업로드 (PATCH, FormData 방식)
+    if (selectedFile.value) {
+      const formData = new FormData()
+      // 백엔드 모델 필드명에 따라 'image' 또는 'profile.image'로 설정
+      // 기존 코드의 키 이름을 유지합니다.
+      formData.append('profile.image', selectedFile.value)
+      
+      // 이미지는 부분 수정(PATCH)으로 처리하여 텍스트 정보 덮어쓰기 방지
+      res = await axios.patch(`${API_URL}/accounts/profile/`, formData, {
+        headers: { 
+          Authorization: `Token ${accountStore.token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+    }
     
     userInfo.value = res.data
     isEditing.value = false
-    selectedFile.value = null // 초기화
-    previewUrl.value = null  // 초기화
-    alert('정보가 수정되었습니다.')
-    fetchProfile() // 최신 정보 다시 가져오기
+    selectedFile.value = null // 파일 선택 초기화
+    previewUrl.value = null   // 미리보기 초기화
+    
+    alert('정보가 성공적으로 수정되었습니다.')
+    fetchProfile() // 최신 데이터 다시 불러오기
+    
   } catch (err) { 
     console.error(err)
-    alert('수정 실패: ' + (err.response?.data?.detail || '오류 발생')) 
+    alert('수정 실패: ' + (err.response?.data?.detail || '입력값을 확인해주세요.')) 
   }
 }
 

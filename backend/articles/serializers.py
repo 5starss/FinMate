@@ -13,17 +13,19 @@ class CommentSerializer(serializers.ModelSerializer):
 class ArticleListSerializer(serializers.ModelSerializer):
     user_nickname = serializers.ReadOnlyField(source='user.nickname')
     like_count = serializers.IntegerField(source='like_users.count', read_only=True)
+    user_image = serializers.ImageField(source='user.profile.image', read_only=True)
 
     class Meta:
         model = Article
-        fields = ('id', 'user_nickname', 'title', 'representative_category', 'total_asset_snapshot', 'like_count', 'created_at')
+        fields = ('id', 'user_nickname', 'user_image', 'title', 'representative_category', 'total_asset_snapshot', 'like_count', 'created_at')
 
 class ArticleSerializer(serializers.ModelSerializer):
     user_nickname = serializers.ReadOnlyField(source='user.nickname')
     comments = CommentSerializer(many=True, read_only=True)
     comment_count = serializers.IntegerField(source='comments.count', read_only=True)
+    user_image = serializers.ImageField(source='user.profile.image', read_only=True)
 
     class Meta:
         model = Article
         fields = '__all__'
-        read_only_fields = ('user', 'like_users', 'total_asset_snapshot', 'representative_category')
+        read_only_fields = ('user', 'user_image', 'like_users', 'total_asset_snapshot', 'representative_category')
