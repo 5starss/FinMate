@@ -113,6 +113,18 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAccountStore } from '@/stores/accounts'
+import { onMounted } from 'vue' // onMounted 추가
+
+onMounted(async () => {
+  // 로그인이 되어있고, 닉네임이나 이미지가 없다면 정보를 새로 불러옵니다.
+  if (store.isLogin && (!store.nickname || !store.userImage)) {
+    try {
+      await store.getUserInfo() // 스토어에 유저 정보 요청 함수가 있다고 가정
+    } catch (err) {
+      console.error('메인화면 유저 정보 로드 실패:', err)
+    }
+  }
+})
 
 const store = useAccountStore()
 const router = useRouter()

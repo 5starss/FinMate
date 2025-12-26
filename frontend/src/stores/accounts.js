@@ -96,6 +96,26 @@ const logIn = function (payload) {
   })
 
 
+    const getUserInfo = function () {
+    if (!token.value) return // 토큰이 없으면 실행 안 함
+
+    axios({
+      method: 'get',
+      url: `${API_URL}/accounts/profile/`,
+      headers: {
+        Authorization: `Token ${token.value}`
+      }
+    })
+      .then(res => {
+        nickname.value = res.data.nickname
+        // 백엔드 시리얼라이저 구조(user -> profile -> image)에 맞춰 저장
+        userImage.value = res.data.profile?.image || null
+        console.log('유저 정보 갱신 완료')
+      })
+      .catch(err => {
+        console.error('유저 정보 갱신 실패:', err)
+      })
+    }
   const logOut = function () {
     axios({
       method: 'post',
@@ -109,6 +129,7 @@ const logIn = function (payload) {
       .catch(err => console.log(err))
   }
 
+
   return {
     API_URL,
     signUp,
@@ -116,6 +137,7 @@ const logIn = function (payload) {
     token,
     isLogin,
     logOut,
+    getUserInfo,
     username: myname,
     nickname,
     userImage,

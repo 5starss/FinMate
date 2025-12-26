@@ -5,7 +5,7 @@ from rest_framework import status
 from .models import UserProfile
 from .serializers import UserSerializer # 바뀐 시리얼라이저 임포트
 
-@api_view(['GET', 'PUT'])
+@api_view(['GET', 'PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def user_profile_detail(request):
     """
@@ -24,7 +24,7 @@ def user_profile_detail(request):
         return Response(serializer.data)
 
     # 3. PUT 요청: 유저 정보 또는 프로필 정보 수정하기
-    elif request.method == 'PUT':
+    elif request.method == 'PUT' or request.method == 'PATCH':
         # UserSerializer의 update 메서드가 중첩된 profile 정보까지 한꺼번에 처리합니다.
         serializer = UserSerializer(user, data=request.data, partial=True)
         
